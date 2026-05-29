@@ -1,872 +1,592 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>FraudShield — AI Fraud Detection</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#F4F6FA;
-  --white:#FFFFFF;
-  --surface:#FFFFFF;
-  --surface2:#F8FAFC;
-  --border:#E2E8F0;
-  --border2:#CBD5E1;
-  --accent:#3B6EF5;
-  --accent-light:#EEF3FE;
-  --accent-dark:#2952D9;
-  --teal:#0D9488;
-  --teal-light:#F0FDFA;
-  --low:#16A34A;
-  --low-bg:#F0FDF4;
-  --medium:#D97706;
-  --medium-bg:#FFFBEB;
-  --high:#DC2626;
-  --high-bg:#FEF2F2;
-  --text:#0F172A;
-  --text2:#475569;
-  --text3:#94A3B8;
-  --text4:#CBD5E1;
-  --shadow-sm:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
-  --shadow:0 4px 16px rgba(15,23,42,.07),0 1px 4px rgba(15,23,42,.04);
-  --shadow-lg:0 12px 40px rgba(15,23,42,.1),0 4px 12px rgba(15,23,42,.06);
-  --radius:14px;
-  --radius-sm:9px;
-  --radius-xs:6px;
-}
-html{scroll-behavior:smooth}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
-
-/* ── TOPBAR ── */
-.topbar{
-  position:sticky;top:0;z-index:200;
-  height:60px;display:flex;align-items:center;justify-content:space-between;
-  padding:0 28px;
-  background:rgba(255,255,255,0.92);
-  border-bottom:1px solid var(--border);
-  backdrop-filter:blur(16px);
-  box-shadow:var(--shadow-sm);
-}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-.brand-logo{
-  width:34px;height:34px;border-radius:10px;
-  background:linear-gradient(135deg,#3B6EF5,#0D9488);
-  display:flex;align-items:center;justify-content:center;
-  font-size:16px;box-shadow:0 4px 12px rgba(59,110,245,.3);
-  flex-shrink:0;
-}
-.brand-name{font-weight:800;font-size:1.05rem;color:var(--text);letter-spacing:-.4px}
-.brand-name span{color:var(--accent)}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:.72rem;font-weight:600;border:1px solid}
-.pill-live{background:var(--low-bg);border-color:rgba(22,163,74,.2);color:var(--low)}
-.pill-live::before{content:'';width:6px;height:6px;background:var(--low);border-radius:50%;animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.pill-model{background:var(--accent-light);border-color:rgba(59,110,245,.2);color:var(--accent)}
-
-/* ── LAYOUT ── */
-.wrapper{max-width:1360px;margin:0 auto;padding:24px 24px 60px;display:grid;grid-template-columns:1fr 390px;gap:20px;align-items:start}
-@media(max-width:1100px){.wrapper{grid-template-columns:1fr}}
-
-/* ── STATS ROW ── */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
-.stat-card{
-  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
-  padding:16px 18px;box-shadow:var(--shadow-sm);
-  display:flex;align-items:center;gap:14px;
-}
-.stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.si-blue{background:var(--accent-light)}
-.si-red{background:var(--high-bg)}
-.si-teal{background:var(--teal-light)}
-.stat-info{}
-.stat-val{font-size:1.35rem;font-weight:800;letter-spacing:-.6px;line-height:1}
-.stat-key{font-size:.7rem;color:var(--text3);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
-
-/* ── BLOCK ── */
-.block{
-  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
-  margin-bottom:14px;box-shadow:var(--shadow-sm);
-  transition:box-shadow .2s;
-}
-.block:hover{box-shadow:var(--shadow)}
-.block-header{
-  display:flex;align-items:center;gap:10px;padding:14px 18px;
-  cursor:pointer;user-select:none;
-  border-bottom:1px solid transparent;transition:border-color .2s,background .15s;
-}
-.block-header:hover{background:#FAFBFF}
-.block-header.open{border-bottom-color:var(--border)}
-.block-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.bi-blue  {background:var(--accent-light);color:var(--accent)}
-.bi-teal  {background:var(--teal-light);color:var(--teal)}
-.bi-amber {background:#FFFBEB;color:#D97706}
-.bi-purple{background:#F5F3FF;color:#7C3AED}
-.block-title{font-weight:600;font-size:.85rem;color:var(--text);flex:1}
-.block-sub{font-size:.71rem;color:var(--text3);margin-right:6px}
-.chevron{font-size:.6rem;color:var(--text3);transition:transform .22s}
-.chevron.open{transform:rotate(180deg)}
-.block-body{padding:16px 18px;display:none}
-.block-body.open{display:block}
-
-/* ── FORM GRID ── */
-.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:12px}
-.fg-2{grid-column:span 2}
-.fgroup{display:flex;flex-direction:column;gap:5px}
-.fgroup label{font-size:.72rem;font-weight:600;color:var(--text2);letter-spacing:.03em}
-.fgroup input,.fgroup select{
-  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
-  padding:9px 12px;color:var(--text);font-size:.85rem;font-family:'Inter',sans-serif;
-  outline:none;transition:border-color .18s,box-shadow .18s,background .18s;width:100%;
-}
-.fgroup input:hover,.fgroup select:hover{border-color:var(--border2);background:var(--white)}
-.fgroup input:focus,.fgroup select:focus{
-  border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,110,245,.12);background:var(--white)
-}
-.fgroup .hint{font-size:.68rem;color:var(--text3);line-height:1.4}
-
-/* ── SEGMENTED CONTROL ── */
-.seg-wrap{display:flex;gap:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
-.seg-btn{
-  flex:1;padding:8px 6px;border:none;background:transparent;font-family:'Inter',sans-serif;
-  font-size:.8rem;font-weight:500;color:var(--text2);cursor:pointer;
-  transition:background .15s,color .15s;text-align:center;
-}
-.seg-btn.active{background:var(--accent);color:#fff;font-weight:600}
-.seg-btn:not(.active):hover{background:var(--border)}
-
-/* ── MCC SEARCH ── */
-.mcc-wrap{position:relative}
-.mcc-input-row{display:flex;gap:8px;align-items:stretch}
-.mcc-search{
-  flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
-  padding:9px 12px;color:var(--text);font-size:.85rem;font-family:'Inter',sans-serif;
-  outline:none;transition:border-color .18s,box-shadow .18s,background .18s;
-}
-.mcc-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,110,245,.12);background:var(--white)}
-.mcc-dropdown{
-  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:400;
-  background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);
-  max-height:240px;overflow-y:auto;display:none;
-  box-shadow:var(--shadow-lg);
-}
-.mcc-dropdown.show{display:block}
-.mcc-opt{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--border);
-  transition:background .12s;
-}
-.mcc-opt:last-child{border-bottom:none}
-.mcc-opt:hover{background:var(--accent-light)}
-.mcc-opt-name{font-size:.82rem;font-weight:500;color:var(--text);flex:1}
-.mcc-opt-code{font-size:.78rem;color:var(--accent);font-weight:700;background:rgba(59,110,245,.08);padding:3px 8px;border-radius:5px;flex-shrink:0;min-width:42px;text-align:center;letter-spacing:.3px}
-.mcc-selected-tag{
-  display:inline-flex;align-items:center;gap:7px;
-  background:var(--teal-light);border:1px solid rgba(13,148,136,.2);
-  color:var(--teal);border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:600;margin-top:6px;
-}
-.mcc-selected-tag .tag-code{background:rgba(13,148,136,.12);border-radius:4px;padding:1px 6px;font-size:.7rem}
-
-/* ── VELOCITY NOTE ── */
-.vel-note{
-  background:#F8FAFC;border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:10px 14px;font-size:.76rem;color:var(--text2);margin-bottom:14px;line-height:1.6;
-  display:flex;gap:8px;align-items:flex-start;
-}
-.vel-note-icon{font-size:14px;flex-shrink:0;margin-top:1px}
-
-/* ── SUBMIT ── */
-.submit-area{margin-top:4px}
-.btn-analyze{
-  width:100%;padding:13px;
-  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
-  border:none;border-radius:var(--radius);color:#fff;
-  font-size:.9rem;font-weight:700;font-family:'Inter',sans-serif;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:opacity .2s,transform .1s,box-shadow .2s;
-  box-shadow:0 4px 20px rgba(59,110,245,.3);letter-spacing:.01em;
-}
-.btn-analyze:hover{opacity:.93;box-shadow:0 6px 28px rgba(59,110,245,.4);transform:translateY(-1px)}
-.btn-analyze:active{transform:scale(.99) translateY(0)}
-.btn-analyze:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
-.spin{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite;display:none;flex-shrink:0}
-@keyframes rot{to{transform:rotate(360deg)}}
-.err-box{
-  background:var(--high-bg);border:1px solid rgba(220,38,38,.2);
-  border-radius:var(--radius-sm);padding:10px 14px;
-  font-size:.78rem;color:var(--high);margin-top:10px;display:none;line-height:1.5;
-}
-
-/* ── RIGHT PANEL ── */
-.right{position:sticky;top:76px;display:flex;flex-direction:column;gap:14px}
-
-/* ── RESULT CARD ── */
-.result-card{
-  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
-  box-shadow:var(--shadow);overflow:hidden;
-  transition:border-color .35s,box-shadow .35s;
-}
-.result-card.s-legit {border-color:rgba(22,163,74,.3);box-shadow:0 4px 24px rgba(22,163,74,.08)}
-.result-card.s-medium{border-color:rgba(217,119,6,.3);box-shadow:0 4px 24px rgba(217,119,6,.08)}
-.result-card.s-fraud {border-color:rgba(220,38,38,.3);box-shadow:0 4px 24px rgba(220,38,38,.1)}
-
-.result-top{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.result-top-label{font-size:.75rem;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:7px}
-.rtl-dot{width:7px;height:7px;border-radius:50%;background:var(--border2)}
-.rtl-dot.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
-
-/* ── EMPTY ── */
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 20px;text-align:center}
-.empty-icon{font-size:2.6rem;opacity:.22;filter:grayscale(.5)}
-.empty-h{font-size:.88rem;font-weight:700;color:var(--text2)}
-.empty-p{font-size:.76rem;color:var(--text3);line-height:1.65;max-width:220px}
-
-/* ── RESULT BODY ── */
-.result-body{padding:20px 18px;display:none}
-
-/* ── GAUGE ── */
-.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:16px}
-.gauge-wrap canvas{max-width:195px;margin-bottom:-44px}
-.gauge-pct{font-size:2.15rem;font-weight:800;letter-spacing:-1.5px;line-height:1}
-.gauge-sub{font-size:.68rem;color:var(--text3);font-weight:500;margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
-
-/* ── VERDICT ── */
-.verdict{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:700;margin-bottom:16px;letter-spacing:.02em;border:1px solid}
-.v-legit {background:var(--low-bg);  border-color:rgba(22,163,74,.22); color:var(--low)}
-.v-medium{background:var(--medium-bg);border-color:rgba(217,119,6,.22);color:var(--medium)}
-.v-fraud {background:var(--high-bg); border-color:rgba(220,38,38,.22); color:var(--high)}
-
-/* ── METRICS ── */
-.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.metric-tile{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 8px;text-align:center}
-.metric-val{font-size:1rem;font-weight:800;letter-spacing:-.3px;margin-bottom:2px}
-.metric-key{font-size:.63rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-
-/* ── RISK BAR ── */
-.risk-wrap{margin-bottom:14px}
-.risk-labels{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text3);font-weight:500;margin-bottom:5px}
-.risk-track{height:5px;background:var(--surface2);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
-.risk-fill{height:100%;border-radius:99px;transition:width .9s cubic-bezier(.4,0,.2,1);width:0%}
-
-/* ── DETAILS ── */
-.details{border-top:1px solid var(--border);padding-top:12px}
-.drow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
-.drow:last-child{border-bottom:none}
-.dk{font-size:.73rem;color:var(--text3);font-weight:500}
-.dv{font-size:.78rem;font-weight:600;color:var(--text)}
-
-/* ── REASONS ── */
-.reasons-wrap{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;display:none}
-.reasons-title{font-size:.68rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
-.reason-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:5px;font-size:.78rem;line-height:1.4;font-weight:500}
-.reason-item:last-child{margin-bottom:0}
-.reason-flag{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.15);color:var(--text)}
-.reason-flag .reason-icon{color:#DC2626;flex-shrink:0;margin-top:1px}
-.reason-ok{background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);color:var(--text)}
-.reason-ok .reason-icon{color:#16A34A;flex-shrink:0;margin-top:1px}
-
-/* ── HISTORY ── */
-.history-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)}
-.history-hd{font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
-.history-hd span{color:var(--text3);font-weight:400;font-size:.7rem}
-.history-empty{font-size:.76rem;color:var(--text3);text-align:center;padding:16px 0}
-.h-list{display:flex;flex-direction:column;gap:7px}
-.h-item{
-  display:flex;align-items:center;justify-content:space-between;
-  background:var(--surface2);border:1px solid var(--border);border-radius:9px;
-  padding:9px 12px;animation:slideIn .25s ease;cursor:default;
-  transition:background .15s;
-}
-.h-item:hover{background:var(--white)}
-@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.h-left{display:flex;align-items:center;gap:9px}
-.h-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.h-amt{font-size:.82rem;font-weight:700;color:var(--text)}
-.h-time{font-size:.67rem;color:var(--text3)}
-.h-right{display:flex;align-items:center;gap:7px}
-.h-pct{font-size:.8rem;font-weight:700}
-.chip{padding:2px 8px;border-radius:5px;font-size:.66rem;font-weight:700;letter-spacing:.04em;border:1px solid}
-.c-low   {background:var(--low-bg);   border-color:rgba(22,163,74,.2); color:var(--low)}
-.c-medium{background:var(--medium-bg);border-color:rgba(217,119,6,.2); color:var(--medium)}
-.c-high  {background:var(--high-bg);  border-color:rgba(220,38,38,.2); color:var(--high)}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>FraudShield — Credit Card Fraud Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { sans: ['Inter','sans-serif'] } } }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Inter',sans-serif}
+    .acc-body{overflow:hidden;transition:max-height .32s cubic-bezier(.4,0,.2,1),opacity .25s ease}
+    .acc-open{max-height:2000px;opacity:1}
+    .acc-closed{max-height:0;opacity:0}
+    .fade-up{animation:fadeUp .3s ease both}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .gauge-fill{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)}
+    .mcc-list{max-height:220px;overflow-y:auto}
+    select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%2394A3B8' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;appearance:none;-webkit-appearance:none}
+  </style>
 </head>
-<body>
+<body class="bg-slate-50 antialiased">
+<div id="root"></div>
 
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-logo">🛡</div>
-    <span class="brand-name">Fraud<span>Shield</span></span>
-  </div>
-  <div class="topbar-right">
-    <span class="pill pill-model">XGBoost · Threshold 50%</span>
-    <span class="pill pill-live">Live Detection</span>
-  </div>
-</header>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
 
-<div class="wrapper">
+// ─── ICONS (Lucide-style inline SVG) ────────────────────────────────────────
+const SVG = ({ children, size=18, className='' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    className={className}>{children}</svg>
+);
+const Icons = {
+  shield:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
+  shieldOk:  <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></>,
+  card:      <><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></>,
+  user:      <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
+  activity:  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>,
+  receipt:   <><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" x2="16" y1="9" y2="9"/><line x1="8" x2="16" y1="13" y2="13"/></>,
+  chevron:   <polyline points="6 9 12 15 18 9"/>,
+  search:    <><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></>,
+  check:     <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
+  warn:      <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></>,
+  danger:    <><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></>,
+  zap:       <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+  bar:       <><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></>,
+  clock:     <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+  trend:     <><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>,
+  loader:    <><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></>,
+};
+const Ic = ({ n, size=18, className='' }) => <SVG size={size} className={className}>{Icons[n]}</SVG>;
 
-  <!-- ═══ LEFT: FORM ═══ -->
-  <div>
-
-    <!-- Stats -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon si-blue">🔍</div>
-        <div class="stat-info">
-          <div class="stat-val" id="sTotalChecks">0</div>
-          <div class="stat-key">Total Checks</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon si-red">🚨</div>
-        <div class="stat-info">
-          <div class="stat-val" id="sFraudFound" style="color:var(--high)">0</div>
-          <div class="stat-key">Fraud Detected</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon si-teal">📊</div>
-        <div class="stat-info">
-          <div class="stat-val" id="sAvgRisk" style="color:var(--teal)">—</div>
-          <div class="stat-key">Avg Risk Score</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Transaction Details -->
-    <div class="block">
-      <div class="block-header open" onclick="toggle(this)">
-        <div class="block-icon bi-blue">💳</div>
-        <div class="block-title">Transaction Details</div>
-        <span class="block-sub">Amount · Channel · Merchant</span>
-        <span class="chevron open">▼</span>
-      </div>
-      <div class="block-body open">
-        <div class="fg">
-          <div class="fgroup fg-2">
-            <label>Transaction Amount (USD)</label>
-            <input type="number" id="amount" value="150.75" step="0.01"/>
-            <span class="hint">Negative values represent credits or refunds</span>
-          </div>
-          <div class="fgroup">
-            <label>Date &amp; Time</label>
-            <input type="datetime-local" id="timestamp"/>
-          </div>
-          <div class="fgroup">
-            <label>Transaction Channel</label>
-            <div class="seg-wrap" id="chipSeg">
-              <button class="seg-btn active" onclick="setSeg(this,'Online Transaction')">Online</button>
-              <button class="seg-btn" onclick="setSeg(this,'Chip Transaction')">Chip</button>
-              <button class="seg-btn" onclick="setSeg(this,'Swipe Transaction')">Swipe</button>
-            </div>
-            <input type="hidden" id="use_chip" value="Online Transaction"/>
-          </div>
-          <div class="fgroup fg-2">
-            <label>Merchant Category (MCC)</label>
-            <div class="mcc-wrap">
-              <input class="mcc-search" id="mccSearch" placeholder="Type code or category name, e.g. 5411 or Grocery…" autocomplete="off" oninput="filterMCC()" onfocus="openMCC()" onblur="closeMCC()"/>
-              <div class="mcc-dropdown" id="mccDrop"></div>
-            </div>
-            <div id="mccTag" style="display:none" class="mcc-selected-tag">
-              <span>📂</span>
-              <span id="mccTagName">—</span>
-              <span class="tag-code" id="mccTagCode">—</span>
-            </div>
-            <input type="hidden" id="mcc_val" value="5411"/>
-          </div>
-          <div class="fgroup">
-            <label>Merchant State</label>
-            <select id="merchant_state">
-              <option value="Unknown">Unknown / Foreign</option>
-              <optgroup label="── Popular ──">
-                <option value="CA">CA — California</option>
-                <option value="TX">TX — Texas</option>
-                <option value="NY">NY — New York</option>
-                <option value="FL">FL — Florida</option>
-                <option value="IL">IL — Illinois</option>
-              </optgroup>
-              <optgroup label="── All States ──">
-                <option value="AL">AL — Alabama</option><option value="AK">AK — Alaska</option>
-                <option value="AZ">AZ — Arizona</option><option value="AR">AR — Arkansas</option>
-                <option value="CO">CO — Colorado</option><option value="CT">CT — Connecticut</option>
-                <option value="DE">DE — Delaware</option><option value="GA">GA — Georgia</option>
-                <option value="HI">HI — Hawaii</option><option value="ID">ID — Idaho</option>
-                <option value="IN">IN — Indiana</option><option value="IA">IA — Iowa</option>
-                <option value="KS">KS — Kansas</option><option value="KY">KY — Kentucky</option>
-                <option value="LA">LA — Louisiana</option><option value="ME">ME — Maine</option>
-                <option value="MD">MD — Maryland</option><option value="MA">MA — Massachusetts</option>
-                <option value="MI">MI — Michigan</option><option value="MN">MN — Minnesota</option>
-                <option value="MS">MS — Mississippi</option><option value="MO">MO — Missouri</option>
-                <option value="MT">MT — Montana</option><option value="NE">NE — Nebraska</option>
-                <option value="NV">NV — Nevada</option><option value="NH">NH — New Hampshire</option>
-                <option value="NJ">NJ — New Jersey</option><option value="NM">NM — New Mexico</option>
-                <option value="NC">NC — North Carolina</option><option value="ND">ND — North Dakota</option>
-                <option value="OH">OH — Ohio</option><option value="OK">OK — Oklahoma</option>
-                <option value="OR">OR — Oregon</option><option value="PA">PA — Pennsylvania</option>
-                <option value="RI">RI — Rhode Island</option><option value="SC">SC — South Carolina</option>
-                <option value="SD">SD — South Dakota</option><option value="TN">TN — Tennessee</option>
-                <option value="UT">UT — Utah</option><option value="VT">VT — Vermont</option>
-                <option value="VA">VA — Virginia</option><option value="WA">WA — Washington</option>
-                <option value="WV">WV — West Virginia</option><option value="WI">WI — Wisconsin</option>
-                <option value="WY">WY — Wyoming</option><option value="DC">DC — Washington D.C.</option>
-              </optgroup>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cardholder -->
-    <div class="block">
-      <div class="block-header open" onclick="toggle(this)">
-        <div class="block-icon bi-teal">👤</div>
-        <div class="block-title">Cardholder Profile</div>
-        <span class="block-sub">Demographics · Finances</span>
-        <span class="chevron open">▼</span>
-      </div>
-      <div class="block-body open">
-        <div class="fg">
-          <div class="fgroup">
-            <label>Birth Year</label>
-            <input type="number" id="birth_year" value="1985" min="1920" max="2005"/>
-          </div>
-          <div class="fgroup">
-            <label>Current Age</label>
-            <input type="number" id="current_age" value="38" min="18" max="100"/>
-          </div>
-          <div class="fgroup">
-            <label>Retirement Age</label>
-            <input type="number" id="retirement_age" value="65" min="40" max="80"/>
-          </div>
-          <div class="fgroup">
-            <label>Gender</label>
-            <select id="gender">
-              <option>Male</option>
-              <option>Female</option>
-            </select>
-          </div>
-          <div class="fgroup">
-            <label>Yearly Income ($)</label>
-            <input type="number" id="yearly_income" value="75000"/>
-          </div>
-          <div class="fgroup">
-            <label>Total Debt ($)</label>
-            <input type="number" id="total_debt" value="12000"/>
-          </div>
-          <div class="fgroup">
-            <label>Credit Limit ($)</label>
-            <input type="number" id="credit_limit" value="10000"/>
-          </div>
-          <div class="fgroup">
-            <label>Credit Score</label>
-            <input type="number" id="credit_score" value="720" min="300" max="850"/>
-          </div>
-          <div class="fgroup">
-            <label>Credit Cards Held</label>
-            <input type="number" id="num_credit_cards" value="2" min="1"/>
-          </div>
-          <div class="fgroup">
-            <label>Per Capita Income ($)</label>
-            <input type="number" id="per_capita_income" value="35000"/>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card Info -->
-    <div class="block">
-      <div class="block-header open" onclick="toggle(this)">
-        <div class="block-icon bi-amber">🏦</div>
-        <div class="block-title">Card Information</div>
-        <span class="block-sub">Type · Brand · Chip</span>
-        <span class="chevron open">▼</span>
-      </div>
-      <div class="block-body open">
-        <div class="fg">
-          <div class="fgroup">
-            <label>Card Type</label>
-            <div class="seg-wrap">
-              <button class="seg-btn active" onclick="setSeg(this,'Credit')" id="ctCredit">Credit</button>
-              <button class="seg-btn" onclick="setSeg(this,'Debit')" id="ctDebit">Debit</button>
-            </div>
-            <input type="hidden" id="card_type" value="Credit"/>
-          </div>
-          <div class="fgroup">
-            <label>Card Brand</label>
-            <select id="card_brand">
-              <option>Visa</option>
-              <option>Mastercard</option>
-              <option>Amex</option>
-              <option>Discover</option>
-            </select>
-          </div>
-          <div class="fgroup">
-            <label>EMV Chip</label>
-            <div class="seg-wrap">
-              <button class="seg-btn active" onclick="setSeg(this,'YES')">Yes</button>
-              <button class="seg-btn" onclick="setSeg(this,'NO')">No</button>
-            </div>
-            <input type="hidden" id="has_chip" value="YES"/>
-          </div>
-          <div class="fgroup">
-            <label>Total Cards Issued</label>
-            <input type="number" id="num_cards_issued" value="1" min="1"/>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Velocity -->
-    <div class="block">
-      <div class="block-header" onclick="toggle(this)">
-        <div class="block-icon bi-purple">⚡</div>
-        <div class="block-title">Transaction Velocity</div>
-        <span class="block-sub">Historical patterns · Optional</span>
-        <span class="chevron">▼</span>
-      </div>
-      <div class="block-body">
-        <div class="vel-note">
-          <span class="vel-note-icon">ℹ️</span>
-          Historical spending patterns improve prediction accuracy. Default values assume a new or unknown cardholder.
-        </div>
-        <div class="fg">
-          <div class="fgroup">
-            <label>Hours Since Last Tx</label>
-            <input type="number" id="time_since_last_tx" value="24" step="0.1" min="0"/>
-            <span class="hint">Max 720 hrs (30 days)</span>
-          </div>
-          <div class="fgroup">
-            <label>Tx Count — 24h</label>
-            <input type="number" id="tx_count_24h" value="2" min="0"/>
-          </div>
-          <div class="fgroup">
-            <label>Spend — 24h ($)</label>
-            <input type="number" id="amount_sum_24h" value="85" min="0"/>
-          </div>
-          <div class="fgroup">
-            <label>Tx Count — 7 Days</label>
-            <input type="number" id="tx_count_7d" value="8" min="0"/>
-          </div>
-          <div class="fgroup">
-            <label>Spend — 7 Days ($)</label>
-            <input type="number" id="amount_sum_7d" value="450" min="0"/>
-          </div>
-          <div class="fgroup">
-            <label>Historical Mean ($)</label>
-            <input type="number" id="user_mean_amt" value="67" min="0"/>
-          </div>
-          <div class="fgroup">
-            <label>Historical Std Dev ($)</label>
-            <input type="number" id="user_std_amt" value="120" min="1"/>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="submit-area">
-      <button class="btn-analyze" id="submitBtn" onclick="runPrediction()">
-        <div class="spin" id="spinner"></div>
-        <span id="btnText">Analyze Transaction</span>
-      </button>
-      <div class="err-box" id="errBox"></div>
-    </div>
-
-  </div>
-
-  <!-- ═══ RIGHT: RESULT ═══ -->
-  <div class="right">
-
-    <div class="result-card" id="resultCard">
-      <div class="result-top">
-        <div class="result-top-label"><span class="rtl-dot" id="rtlDot"></span>Prediction Result</div>
-      </div>
-      <div class="empty" id="emptyState">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-h">No analysis yet</div>
-        <div class="empty-p">Complete the form and click <strong>Analyze Transaction</strong> for an instant fraud prediction.</div>
-      </div>
-      <div class="result-body" id="resultBody">
-        <div class="gauge-wrap">
-          <canvas id="gaugeCanvas" width="195" height="115"></canvas>
-          <div class="gauge-pct" id="gaugePct">—</div>
-          <div class="gauge-sub">Fraud Probability</div>
-        </div>
-        <div class="verdict" id="verdictEl">—</div>
-        <div class="metric-grid">
-          <div class="metric-tile"><div class="metric-val" id="mProb">—</div><div class="metric-key">Probability</div></div>
-          <div class="metric-tile"><div class="metric-val" id="mRisk">—</div><div class="metric-key">Risk Level</div></div>
-          <div class="metric-tile"><div class="metric-val" id="mDecision">—</div><div class="metric-key">Decision</div></div>
-        </div>
-        <div class="risk-wrap">
-          <div class="risk-labels"><span>Risk Score</span><span id="riskLabel">—</span></div>
-          <div class="risk-track"><div class="risk-fill" id="riskFill"></div></div>
-        </div>
-        <div class="details">
-          <div class="drow"><span class="dk">Model</span><span class="dv" id="dModel">—</span></div>
-          <div class="drow"><span class="dk">Threshold</span><span class="dv" id="dThreshold">—</span></div>
-          <div class="drow"><span class="dk">Analyzed at</span><span class="dv" id="dTime">—</span></div>
-        </div>
-        <div class="reasons-wrap" id="reasonsWrap">
-          <div class="reasons-title">Why this result?</div>
-          <div id="reasonsList"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="history-card">
-      <div class="history-hd">
-        Recent Checks
-        <span id="histCount">0 checks</span>
-      </div>
-      <div id="histContainer"><div class="history-empty">No checks yet</div></div>
-    </div>
-
-  </div>
-</div>
-
-<script>
-/* ── MCC DATA ── */
-const MCC=[
+// ─── MCC DATA ────────────────────────────────────────────────────────────────
+const MCC = [
   [5411,'Grocery Stores & Supermarkets'],[5912,'Drug Stores & Pharmacies'],
   [5812,'Restaurants & Eating Places'],[5541,'Service Stations — Gas'],
   [5311,'Department Stores'],[5732,'Electronics Stores'],
   [5945,'Hobby, Toy & Game Shops'],[5651,'Family Clothing Stores'],
   [5661,'Shoe Stores'],[5999,'Miscellaneous Retail'],
-  [5691,'Men\'s & Women\'s Clothing'],[5621,'Women\'s Clothing Stores'],
+  [5691,"Men's & Women's Clothing"],[5621,"Women's Clothing Stores"],
   [4111,'Local & Suburban Transit'],[4121,'Taxicabs & Limousines'],
   [4814,'Telephone Services'],[4899,'Cable & Pay TV Services'],
   [5734,'Computer & Software Stores'],[5045,'Computers & Peripherals'],
-  [7011,'Hotels & Resorts'],[7832,'Movie Theaters'],
-  [5992,'Florists'],[5942,'Book Stores'],
-  [5944,'Jewelry Stores'],[5251,'Hardware Stores'],
+  [7011,'Hotels & Resorts'],[7832,'Movie Theaters'],[5992,'Florists'],
+  [5942,'Book Stores'],[5944,'Jewelry Stores'],[5251,'Hardware Stores'],
   [5712,'Furniture Stores'],[5722,'Household Appliance Stores'],
   [5200,'Home Supply & Improvement'],[4816,'Computer Network Services'],
   [7372,'Software & IT Services'],[8011,'Doctors & Physicians'],
   [8021,'Dentists & Orthodontists'],[8099,'Health & Medical Services'],
   [8111,'Legal Services & Attorneys'],[8220,'Colleges & Universities'],
   [5921,'Package Stores — Liquor'],[5813,'Bars & Taverns'],
-  [5441,'Candy & Confections'],[5462,'Bakeries'],
-  [5533,'Automotive Parts'],[5511,'New Car Dealers'],
-  [5521,'Used Car Dealers'],[7513,'Truck & Utility Rental'],
-  [7542,'Car Washes'],[4722,'Travel Agencies'],
-  [6011,'ATM Cash Dispensing'],[6211,'Security Brokers'],
-  [6300,'Insurance Services'],[5300,'Wholesale Clubs'],
+  [5441,'Candy & Confections'],[5462,'Bakeries'],[5533,'Automotive Parts'],
+  [5511,'New Car Dealers'],[5521,'Used Car Dealers'],[7513,'Truck & Utility Rental'],
+  [7542,'Car Washes'],[4722,'Travel Agencies'],[6011,'ATM Cash Dispensing'],
+  [6211,'Security Brokers'],[6300,'Insurance Services'],[5300,'Wholesale Clubs'],
   [5331,'Variety Stores'],[5399,'General Merchandise'],
 ];
 
-let selMCC=5411;
+// ─── BASE COMPONENTS ─────────────────────────────────────────────────────────
+const Label = ({children}) => (
+  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{children}</p>
+);
 
-function buildDropdown(q=''){
-  const drop=document.getElementById('mccDrop');
-  const lq=q.toLowerCase();
-  const res=MCC.filter(([c,n])=>!q||c.toString().includes(q)||n.toLowerCase().includes(lq)).slice(0,45);
-  drop.innerHTML=res.length
-    ?res.map(([c,n])=>`<div class="mcc-opt" onmousedown="pickMCC(${c},'${n.replace(/'/g,"\\'")}')"><span class="mcc-opt-code">${c}</span><span class="mcc-opt-name">${n}</span></div>`).join('')
-    :'<div class="mcc-opt" style="color:var(--text3);cursor:default">No results found</div>';
-}
-function openMCC(){
-  const inp=document.getElementById('mccSearch');
-  inp.select();
-  buildDropdown('');
-  document.getElementById('mccDrop').classList.add('show');
-}
-function closeMCC(){setTimeout(()=>document.getElementById('mccDrop').classList.remove('show'),160)}
-function filterMCC(){buildDropdown(document.getElementById('mccSearch').value);document.getElementById('mccDrop').classList.add('show');document.getElementById('mccTag').style.display='none';selMCC=null}
-function pickMCC(code,name){
-  selMCC=code;
-  document.getElementById('mcc_val').value=code;
-  document.getElementById('mccSearch').value=`${code} — ${name}`;
-  document.getElementById('mccTagName').textContent=name;
-  document.getElementById('mccTagCode').textContent=code;
-  document.getElementById('mccTag').style.display='inline-flex';
-}
-// Init MCC
-pickMCC(5411,'Grocery Stores & Supermarkets');
+const inputCls = "w-full px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-400 hover:border-slate-300 transition-all";
 
-/* ── SEGMENTED CONTROLS ── */
-function setSeg(btn,val){
-  const seg=btn.closest('.seg-wrap');
-  seg.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  // find hidden input sibling
-  const hidden=seg.nextElementSibling;
-  if(hidden&&hidden.type==='hidden')hidden.value=val;
-}
+const Inp = ({type='text',value,onChange,placeholder,step,min}) => (
+  <input type={type} value={value} onChange={e=>onChange(e.target.value)}
+    placeholder={placeholder} step={step} min={min} className={inputCls}/>
+);
 
-/* ── ACCORDION ── */
-function toggle(hdr){
-  const body=hdr.nextElementSibling;
-  const chev=hdr.querySelector('.chevron');
-  const open=body.classList.contains('open');
-  body.classList.toggle('open',!open);
-  hdr.classList.toggle('open',!open);
-  chev.classList.toggle('open',!open);
-}
+const Sel = ({value,onChange,children}) => (
+  <select value={value} onChange={e=>onChange(e.target.value)} className={inputCls+" pr-8 cursor-pointer"}>
+    {children}
+  </select>
+);
 
-/* ── INIT TIMESTAMP ── */
-const now=new Date();
-now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
-document.getElementById('timestamp').value=now.toISOString().slice(0,16);
+const Seg = ({options,value,onChange}) => (
+  <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-slate-50 p-0.5 gap-0.5">
+    {options.map(o=>(
+      <button key={o.v} type="button" onClick={()=>onChange(o.v)}
+        className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150
+          ${value===o.v?'bg-white text-blue-600 shadow-sm border border-slate-200':'text-slate-500 hover:text-slate-700'}`}>
+        {o.l}
+      </button>
+    ))}
+  </div>
+);
 
-/* ── SESSION STATS ── */
-let totChecks=0,fraudCount=0,probSum=0;
-function updateStats(isFraud,prob){
-  totChecks++;fraudCount+=isFraud?1:0;probSum+=prob;
-  document.getElementById('sTotalChecks').textContent=totChecks;
-  document.getElementById('sFraudFound').textContent=fraudCount;
-  document.getElementById('sAvgRisk').textContent=(probSum/totChecks*100).toFixed(1)+'%';
-}
+// ─── MCC SEARCH ──────────────────────────────────────────────────────────────
+const MCCSearch = ({value, onChange}) => {
+  const [q,setQ] = useState('');
+  const [open,setOpen] = useState(false);
+  const [label,setLabel] = useState('5411 — Grocery Stores & Supermarkets');
+  const ref = useRef(null);
 
-/* ── GAUGE ── */
-let gaugeChart=null;
-function renderGauge(prob){
-  const ctx=document.getElementById('gaugeCanvas').getContext('2d');
-  const pct=Math.round(prob*100);
-  const color=prob>=.5?'#DC2626':prob>=.3?'#D97706':'#16A34A';
-  if(gaugeChart)gaugeChart.destroy();
-  gaugeChart=new Chart(ctx,{
-    type:'doughnut',
-    data:{datasets:[{data:[pct,100-pct],backgroundColor:[color,'#F1F5F9'],borderWidth:0,circumference:180,rotation:270}]},
-    options:{responsive:false,cutout:'80%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:900,easing:'easeInOutQuart'}}
-  });
-}
+  const filtered = MCC.filter(([c,n])=>!q||c.toString().includes(q)||n.toLowerCase().includes(q.toLowerCase())).slice(0,45);
 
-/* ── PREDICT ── */
-async function runPrediction(){
-  const btn=document.getElementById('submitBtn');
-  const spin=document.getElementById('spinner');
-  const btnTxt=document.getElementById('btnText');
-  const errBox=document.getElementById('errBox');
-  btn.disabled=true;spin.style.display='block';btnTxt.textContent='Analyzing…';errBox.style.display='none';
+  useEffect(()=>{
+    const fn = e=>{ if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown',fn);
+    return ()=>document.removeEventListener('mousedown',fn);
+  },[]);
 
-  const ts=document.getElementById('timestamp').value;
-  const mccCode=selMCC||parseInt((document.getElementById('mccSearch').value||'5411').split('—')[0].trim())||5411;
+  const pick = (c,n) => { onChange(c); setLabel(`${c} — ${n}`); setQ(''); setOpen(false); };
 
-  const payload={
-    amount:parseFloat(document.getElementById('amount').value)||0,
-    use_chip:document.getElementById('use_chip').value,
-    mcc:mccCode,
-    merchant_state:document.getElementById('merchant_state').value,
-    timestamp:ts.length===16?ts+':00':ts,
-    birth_year:parseInt(document.getElementById('birth_year').value),
-    current_age:parseInt(document.getElementById('current_age').value),
-    retirement_age:parseInt(document.getElementById('retirement_age').value),
-    gender:document.getElementById('gender').value,
-    yearly_income:parseFloat(document.getElementById('yearly_income').value),
-    total_debt:parseFloat(document.getElementById('total_debt').value),
-    credit_limit:parseFloat(document.getElementById('credit_limit').value),
-    credit_score:parseFloat(document.getElementById('credit_score').value),
-    num_credit_cards:parseInt(document.getElementById('num_credit_cards').value),
-    per_capita_income:parseFloat(document.getElementById('per_capita_income').value),
-    card_type:document.getElementById('card_type').value,
-    card_brand:document.getElementById('card_brand').value,
-    has_chip:document.getElementById('has_chip').value,
-    num_cards_issued:parseInt(document.getElementById('num_cards_issued').value),
-    time_since_last_tx:Math.min(parseFloat(document.getElementById('time_since_last_tx').value)||720,720),
-    tx_count_24h:parseFloat(document.getElementById('tx_count_24h').value)||0,
-    amount_sum_24h:parseFloat(document.getElementById('amount_sum_24h').value)||0,
-    tx_count_7d:parseFloat(document.getElementById('tx_count_7d').value)||0,
-    amount_sum_7d:parseFloat(document.getElementById('amount_sum_7d').value)||0,
-    user_mean_amt:parseFloat(document.getElementById('user_mean_amt').value)||67,
-    user_std_amt:Math.max(parseFloat(document.getElementById('user_std_amt').value)||120,1),
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <Ic n="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+        <input value={open?q:label} onChange={e=>{setQ(e.target.value);setOpen(true)}}
+          onFocus={()=>{setQ('');setOpen(true)}} placeholder="Search code or category…"
+          className={inputCls+" pl-8"}/>
+      </div>
+      {open && (
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden mcc-list">
+          {filtered.length ? filtered.map(([c,n])=>(
+            <button key={c} type="button" onMouseDown={()=>pick(c,n)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors">
+              <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md min-w-[46px] text-center flex-shrink-0">{c}</span>
+              <span className="text-sm text-slate-700 truncate">{n}</span>
+            </button>
+          )) : <p className="text-sm text-slate-400 text-center py-4">No results</p>}
+        </div>
+      )}
+      {!open && <p className="text-xs text-slate-400 mt-1.5 truncate">Selected: <span className="text-blue-600 font-semibold">{label}</span></p>}
+    </div>
+  );
+};
+
+// ─── ACCORDION SECTION ───────────────────────────────────────────────────────
+const Section = ({icon,title,sub,open,onToggle,children}) => (
+  <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 overflow-visible">
+    <button type="button" onClick={onToggle}
+      className="w-full flex items-center justify-between px-5 py-4 rounded-t-xl hover:bg-slate-50/70 transition-colors text-left">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+          <Ic n={icon} size={17}/>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-800">{title}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
+        </div>
+      </div>
+      <span className={`text-slate-400 transition-transform duration-200 ${open?'rotate-180':''}`}>
+        <Ic n="chevron" size={18}/>
+      </span>
+    </button>
+    <div className={`acc-body ${open?'acc-open':'acc-closed'}`}>
+      <div className="px-5 pb-5 pt-2 border-t border-slate-100">{children}</div>
+    </div>
+  </div>
+);
+
+// ─── GAUGE ───────────────────────────────────────────────────────────────────
+const Gauge = ({prob,color}) => {
+  const pct = Math.round(prob*100);
+  const r = 78, circ = Math.PI*r;
+  const offset = circ - (pct/100)*circ;
+  return (
+    <div className="flex flex-col items-center py-2">
+      <div className="relative" style={{width:200,height:116}}>
+        <svg width="200" height="116" viewBox="0 0 200 116">
+          <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke="#F1F5F9" strokeWidth="14" strokeLinecap="round"/>
+          <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
+            strokeDasharray={circ} strokeDashoffset={offset} className="gauge-fill"/>
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-3">
+          <span className="text-4xl font-extrabold tracking-tight leading-none" style={{color}}>{pct}%</span>
+          <span className="text-[11px] text-slate-400 font-semibold mt-1 uppercase tracking-wide">Fraud Probability</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── RESULT PANEL ────────────────────────────────────────────────────────────
+const ResultPanel = ({result}) => {
+  if (!result) return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col items-center justify-center min-h-[300px] p-8 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+          <Ic n="shield" size={30} className="text-slate-300"/>
+        </div>
+        <p className="text-sm font-semibold text-slate-400">No Analysis Yet</p>
+        <p className="text-xs text-slate-300 mt-1.5 leading-relaxed max-w-[160px]">Fill in the form and click Analyze Transaction</p>
+      </div>
+    </div>
+  );
+
+  const {fraud_probability,is_fraud,risk_level,model,threshold,reasons=[]} = result;
+  const pct = Math.round(fraud_probability*100);
+  const c = is_fraud||risk_level==='HIGH'
+    ? {color:'#EF4444',hdr:'bg-red-50 border-red-200',txt:'text-red-600',pill:'bg-red-100 text-red-700',badge:'text-red-500',border:'border-red-200'}
+    : risk_level==='MEDIUM'
+    ? {color:'#F59E0B',hdr:'bg-amber-50 border-amber-200',txt:'text-amber-600',pill:'bg-amber-100 text-amber-700',badge:'text-amber-500',border:'border-amber-200'}
+    : {color:'#10B981',hdr:'bg-emerald-50 border-emerald-200',txt:'text-emerald-600',pill:'bg-emerald-100 text-emerald-700',badge:'text-emerald-500',border:'border-emerald-200'};
+
+  return (
+    <div className={`bg-white rounded-xl border shadow-sm fade-up ${c.border}`}>
+      {/* Verdict header */}
+      <div className={`${c.hdr} border-b rounded-t-xl px-5 py-3.5 flex items-center justify-between`}>
+        <div className="flex items-center gap-2">
+          <Ic n={is_fraud?'danger':risk_level==='MEDIUM'?'warn':'shieldOk'} size={18} className={c.badge}/>
+          <span className={`text-sm font-bold ${c.txt}`}>
+            {is_fraud?'FRAUDULENT — BLOCK':risk_level==='MEDIUM'?'SUSPICIOUS — REVIEW':'LEGITIMATE — APPROVE'}
+          </span>
+        </div>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${c.pill}`}>{risk_level}</span>
+      </div>
+
+      <div className="p-5">
+        <Gauge prob={fraud_probability} color={c.color}/>
+
+        {/* Metric tiles */}
+        <div className="grid grid-cols-3 gap-2.5 mt-4">
+          {[['Score',`${pct}%`,c.txt],['Risk Level',risk_level,c.txt],['Decision',is_fraud?'Block':'Approve',c.txt]].map(([k,v,cls])=>(
+            <div key={k} className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+              <p className={`text-base font-bold ${cls}`}>{v}</p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">{k}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Risk bar */}
+        <div className="mt-4">
+          <div className="flex justify-between text-xs font-medium text-slate-400 mb-1.5">
+            <span>Risk Score</span><span>{pct}%</span>
+          </div>
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-1000 ease-out"
+              style={{width:`${pct}%`,background:c.color}}/>
+          </div>
+        </div>
+
+        {/* Reasons */}
+        {reasons.length>0 && (
+          <div className="mt-5">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Why this result?</p>
+            <div className="flex flex-col gap-2">
+              {reasons.map((r,i)=>(
+                <div key={i} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-xs leading-relaxed font-medium
+                  ${r.flag?'bg-red-50 border border-red-100 text-slate-700':'bg-emerald-50 border border-emerald-100 text-slate-700'}`}>
+                  <Ic n={r.flag?'warn':'check'} size={13} className={`flex-shrink-0 mt-0.5 ${r.flag?'text-red-500':'text-emerald-500'}`}/>
+                  <span>{r.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Details */}
+        <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
+          {[['Model',model],['Threshold',`${(threshold*100).toFixed(0)}% decision threshold`],['Analyzed at',new Date().toLocaleTimeString()]].map(([k,v])=>(
+            <div key={k} className="flex justify-between items-center">
+              <span className="text-xs text-slate-400">{k}</span>
+              <span className="text-xs font-semibold text-slate-700">{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── HISTORY PANEL ───────────────────────────────────────────────────────────
+const HistoryPanel = ({history}) => (
+  <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="flex items-center gap-2">
+        <Ic n="clock" size={16} className="text-slate-400"/>
+        <span className="text-sm font-semibold text-slate-700">Recent Checks</span>
+      </div>
+      <span className="text-xs text-slate-400">{history.length} check{history.length!==1?'s':''}</span>
+    </div>
+    <div className="p-3">
+      {!history.length ? (
+        <p className="text-xs text-slate-300 text-center py-5">No checks yet</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {history.map((h,i)=>{
+            const col = h.is_fraud?'#EF4444':h.risk_level==='MEDIUM'?'#F59E0B':'#10B981';
+            return (
+              <div key={i} className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:col}}/>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">${parseFloat(h.amount).toFixed(2)}</p>
+                    <p className="text-xs text-slate-400">{h.time}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold" style={{color:col}}>{Math.round(h.fraud_probability*100)}%</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{background:`${col}18`,color:col}}>{h.risk_level}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// ─── STATS ROW ───────────────────────────────────────────────────────────────
+const StatsRow = ({stats}) => {
+  const avg = stats.checks>0?((stats.totalRisk/stats.checks)*100).toFixed(1):'0.0';
+  return (
+    <div className="grid grid-cols-3 gap-4 mb-6">
+      {[
+        {n:'bar',   label:'Total Checks',  value:stats.checks,  bg:'bg-blue-50',  txt:'text-blue-600'},
+        {n:'warn',  label:'Fraud Detected',value:stats.fraud,   bg:'bg-red-50',   txt:'text-red-600'},
+        {n:'trend', label:'Avg Risk Score', value:`${avg}%`,    bg:'bg-amber-50', txt:'text-amber-600'},
+      ].map(s=>(
+        <div key={s.label} className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4">
+          <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+            <Ic n={s.n} size={20} className={s.txt}/>
+          </div>
+          <div>
+            <p className="text-2xl font-extrabold text-slate-900 leading-none">{s.value}</p>
+            <p className="text-xs text-slate-400 font-medium mt-1">{s.label}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─── NAVBAR ──────────────────────────────────────────────────────────────────
+const Navbar = () => (
+  <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
+          <Ic n="shieldOk" size={16} className="text-white"/>
+        </div>
+        <span className="text-base font-bold text-slate-900 tracking-tight">FraudShield</span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
+          <Ic n="bar" size={13} className="text-slate-500"/>
+          <span className="text-xs font-semibold text-slate-600">XGBoost · Threshold 50%</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
+          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse inline-block"/>
+          <span className="text-xs font-semibold text-emerald-700">Live</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+);
+
+// ─── FORM ────────────────────────────────────────────────────────────────────
+const pad = n=>String(n).padStart(2,'0');
+const now = new Date();
+const INIT = {
+  amount:'150.75',
+  timestamp:`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`,
+  use_chip:'Online Transaction', mcc:5411, merchant_state:'Unknown',
+  birth_year:'1985', current_age:'38', retirement_age:'65', gender:'Male',
+  yearly_income:'75000', total_debt:'12000', credit_limit:'10000',
+  credit_score:'720', num_credit_cards:'2', per_capita_income:'35000',
+  card_type:'Credit', card_brand:'Visa', has_chip:'YES', num_cards_issued:'1',
+  time_since_last_tx:'720', tx_count_24h:'0', amount_sum_24h:'0',
+  tx_count_7d:'0', amount_sum_7d:'0', user_mean_amt:'67', user_std_amt:'120',
+};
+
+const Form = ({onResult}) => {
+  const [d,setD] = useState(INIT);
+  const [open,setOpen] = useState({tx:true,card:false,holder:false,vel:false});
+  const [loading,setLoading] = useState(false);
+  const [err,setErr] = useState('');
+
+  const set = f => v => setD(p=>({...p,[f]:v}));
+  const tog = k => setOpen(p=>({...p,[k]:!p[k]}));
+
+  const submit = async () => {
+    setErr(''); setLoading(true);
+    try {
+      const ts = d.timestamp.length===16?d.timestamp+':00':d.timestamp;
+      const payload = {
+        amount:parseFloat(d.amount)||0, use_chip:d.use_chip, mcc:d.mcc,
+        merchant_state:d.merchant_state, timestamp:ts,
+        birth_year:parseInt(d.birth_year), current_age:parseInt(d.current_age),
+        retirement_age:parseInt(d.retirement_age), gender:d.gender,
+        yearly_income:parseFloat(d.yearly_income), total_debt:parseFloat(d.total_debt),
+        credit_limit:parseFloat(d.credit_limit), credit_score:parseFloat(d.credit_score),
+        num_credit_cards:parseInt(d.num_credit_cards), per_capita_income:parseFloat(d.per_capita_income),
+        card_type:d.card_type, card_brand:d.card_brand, has_chip:d.has_chip,
+        num_cards_issued:parseInt(d.num_cards_issued),
+        time_since_last_tx:Math.min(parseFloat(d.time_since_last_tx)||720,720),
+        tx_count_24h:parseFloat(d.tx_count_24h)||0, amount_sum_24h:parseFloat(d.amount_sum_24h)||0,
+        tx_count_7d:parseFloat(d.tx_count_7d)||0, amount_sum_7d:parseFloat(d.amount_sum_7d)||0,
+        user_mean_amt:parseFloat(d.user_mean_amt)||67, user_std_amt:Math.max(parseFloat(d.user_std_amt)||120,1),
+      };
+      const res = await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.detail||'Prediction failed');
+      onResult(data, payload.amount);
+    } catch(e){ setErr(e.message); }
+    finally{ setLoading(false); }
   };
 
-  try{
-    const res=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.detail||'Prediction failed');
-    renderResult(data,payload.amount);
-    addToHistory(data,payload.amount);
-    updateStats(data.is_fraud,data.fraud_probability);
-  }catch(e){
-    errBox.textContent='⚠ '+e.message;errBox.style.display='block';
-  }finally{
-    btn.disabled=false;spin.style.display='none';btnTxt.textContent='Analyze Transaction';
-  }
-}
+  return (
+    <div>
+      {/* Transaction Details */}
+      <Section icon="receipt" title="Transaction Details" sub="Amount · Channel · Merchant" open={open.tx} onToggle={()=>tog('tx')}>
+        <div className="grid grid-cols-2 gap-4 mt-3">
+          <div>
+            <Label>Transaction Amount (USD)</Label>
+            <Inp type="number" value={d.amount} onChange={set('amount')} placeholder="0.00" step="0.01"/>
+            <p className="text-[11px] text-slate-400 mt-1">Negative = credit or refund</p>
+          </div>
+          <div>
+            <Label>Date &amp; Time</Label>
+            <Inp type="datetime-local" value={d.timestamp} onChange={set('timestamp')}/>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Label>Transaction Channel</Label>
+          <Seg value={d.use_chip} onChange={set('use_chip')} options={[
+            {v:'Online Transaction',l:'Online'},
+            {v:'Chip Transaction',l:'Chip'},
+            {v:'Swipe Transaction',l:'Swipe'},
+          ]}/>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <Label>Merchant Category (MCC)</Label>
+            <MCCSearch value={d.mcc} onChange={set('mcc')}/>
+          </div>
+          <div>
+            <Label>Merchant State</Label>
+            <Sel value={d.merchant_state} onChange={set('merchant_state')}>
+              <optgroup label="Popular">
+                {['CA','TX','NY','FL','IL','PA','OH','GA','NC','MI'].map(s=><option key={s}>{s}</option>)}
+              </optgroup>
+              <optgroup label="All States">
+                {['AK','AL','AR','AZ','CO','CT','DC','DE','HI','IA','ID','IN','KS','KY','LA','MA','MD','ME','MN','MO','MS','MT','ND','NE','NH','NJ','NM','NV','OK','OR','RI','SC','SD','TN','UT','VA','VT','WA','WI','WV','WY','Unknown'].map(s=><option key={s}>{s}</option>)}
+              </optgroup>
+            </Sel>
+          </div>
+        </div>
+      </Section>
 
-function renderResult(data,amount){
-  const prob=data.fraud_probability;
-  const risk=data.risk_level;
-  const isFraud=data.is_fraud;
-  const pct=Math.round(prob*100);
-  const color=prob>=.5?'var(--high)':prob>=.3?'var(--medium)':'var(--low)';
+      {/* Card Information */}
+      <Section icon="card" title="Card Information" sub="Type · Brand · Chip" open={open.card} onToggle={()=>tog('card')}>
+        <div className="mt-3">
+          <Label>Card Type</Label>
+          <Seg value={d.card_type} onChange={set('card_type')} options={[{v:'Credit',l:'Credit'},{v:'Debit',l:'Debit'}]}/>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div>
+            <Label>Card Brand</Label>
+            <Sel value={d.card_brand} onChange={set('card_brand')}>
+              {['Visa','Mastercard','Amex','Discover'].map(b=><option key={b}>{b}</option>)}
+            </Sel>
+          </div>
+          <div>
+            <Label>Cards Issued</Label>
+            <Inp type="number" value={d.num_cards_issued} onChange={set('num_cards_issued')} min="1"/>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Label>EMV Chip</Label>
+          <Seg value={d.has_chip} onChange={set('has_chip')} options={[{v:'YES',l:'Has Chip'},{v:'NO',l:'No Chip'}]}/>
+        </div>
+      </Section>
 
-  document.getElementById('emptyState').style.display='none';
-  document.getElementById('resultBody').style.display='block';
+      {/* Cardholder Profile */}
+      <Section icon="user" title="Cardholder Profile" sub="Demographics · Finances" open={open.holder} onToggle={()=>tog('holder')}>
+        <div className="grid grid-cols-3 gap-4 mt-3">
+          <div><Label>Birth Year</Label><Inp type="number" value={d.birth_year} onChange={set('birth_year')}/></div>
+          <div><Label>Current Age</Label><Inp type="number" value={d.current_age} onChange={set('current_age')}/></div>
+          <div><Label>Retirement Age</Label><Inp type="number" value={d.retirement_age} onChange={set('retirement_age')}/></div>
+        </div>
+        <div className="mt-4">
+          <Label>Gender</Label>
+          <Seg value={d.gender} onChange={set('gender')} options={[{v:'Male',l:'Male'},{v:'Female',l:'Female'}]}/>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div><Label>Yearly Income ($)</Label><Inp type="number" value={d.yearly_income} onChange={set('yearly_income')}/></div>
+          <div><Label>Total Debt ($)</Label><Inp type="number" value={d.total_debt} onChange={set('total_debt')}/></div>
+          <div><Label>Credit Limit ($)</Label><Inp type="number" value={d.credit_limit} onChange={set('credit_limit')}/></div>
+          <div><Label>Credit Score</Label><Inp type="number" value={d.credit_score} onChange={set('credit_score')}/></div>
+          <div><Label>Credit Cards Held</Label><Inp type="number" value={d.num_credit_cards} onChange={set('num_credit_cards')}/></div>
+          <div><Label>Per Capita Income ($)</Label><Inp type="number" value={d.per_capita_income} onChange={set('per_capita_income')}/></div>
+        </div>
+      </Section>
 
-  const card=document.getElementById('resultCard');
-  card.className='result-card '+(isFraud?'s-fraud':risk==='MEDIUM'?'s-medium':'s-legit');
-  document.getElementById('rtlDot').className='rtl-dot live';
+      {/* Velocity */}
+      <Section icon="activity" title="Transaction Velocity" sub="History · Spending Patterns" open={open.vel} onToggle={()=>tog('vel')}>
+        <div className="flex items-start gap-2.5 px-3.5 py-3 bg-amber-50 border border-amber-100 rounded-xl mb-4 mt-3">
+          <Ic n="warn" size={14} className="text-amber-500 mt-0.5 flex-shrink-0"/>
+          <p className="text-xs text-amber-700 leading-relaxed">
+            Velocity features are the strongest fraud signal. Set high counts &amp; amounts to trigger a fraud result.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div><Label>Time Since Last Tx (hrs)</Label><Inp type="number" value={d.time_since_last_tx} onChange={set('time_since_last_tx')}/></div>
+          <div><Label>Tx Count 24h</Label><Inp type="number" value={d.tx_count_24h} onChange={set('tx_count_24h')}/></div>
+          <div><Label>Amount Sum 24h ($)</Label><Inp type="number" value={d.amount_sum_24h} onChange={set('amount_sum_24h')}/></div>
+          <div><Label>Tx Count 7 Days</Label><Inp type="number" value={d.tx_count_7d} onChange={set('tx_count_7d')}/></div>
+          <div><Label>Amount Sum 7 Days ($)</Label><Inp type="number" value={d.amount_sum_7d} onChange={set('amount_sum_7d')}/></div>
+          <div><Label>User Mean Amount ($)</Label><Inp type="number" value={d.user_mean_amt} onChange={set('user_mean_amt')}/></div>
+          <div><Label>User Std Amount ($)</Label><Inp type="number" value={d.user_std_amt} onChange={set('user_std_amt')}/></div>
+        </div>
+      </Section>
 
-  renderGauge(prob);
-  const gp=document.getElementById('gaugePct');
-  gp.textContent=pct+'%';gp.style.color=color;
+      {err && (
+        <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-700">
+          <Ic n="danger" size={16} className="text-red-500 flex-shrink-0"/>
+          {err}
+        </div>
+      )}
 
-  const v=document.getElementById('verdictEl');
-  if(isFraud){v.className='verdict v-fraud';v.innerHTML='🚨 &nbsp;FRAUDULENT — BLOCK TRANSACTION'}
-  else if(risk==='MEDIUM'){v.className='verdict v-medium';v.innerHTML='⚠️ &nbsp;SUSPICIOUS — MANUAL REVIEW'}
-  else{v.className='verdict v-legit';v.innerHTML='✅ &nbsp;LEGITIMATE — APPROVE'}
+      <button type="button" onClick={submit} disabled={loading}
+        className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 bg-blue-600 hover:bg-blue-700
+          disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl
+          shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.99]">
+        {loading
+          ? <><Ic n="loader" size={17} className="animate-spin"/> Analyzing Transaction…</>
+          : <><Ic n="zap" size={17}/> Analyze Transaction</>
+        }
+      </button>
+    </div>
+  );
+};
 
-  document.getElementById('mProb').textContent=pct+'%';
-  document.getElementById('mProb').style.color=color;
-  document.getElementById('mRisk').textContent=risk;
-  document.getElementById('mRisk').style.color=color;
-  document.getElementById('mDecision').textContent=isFraud?'Block':'Approve';
-  document.getElementById('mDecision').style.color=isFraud?'var(--high)':'var(--low)';
+// ─── APP ─────────────────────────────────────────────────────────────────────
+const App = () => {
+  const [result,setResult] = useState(null);
+  const [history,setHistory] = useState([]);
+  const [stats,setStats] = useState({checks:0,fraud:0,totalRisk:0});
 
-  document.getElementById('riskLabel').textContent=pct+'%';
-  const fill=document.getElementById('riskFill');
-  fill.style.background=prob>=.5?'#DC2626':prob>=.3?'#D97706':'#16A34A';
-  setTimeout(()=>fill.style.width=pct+'%',60);
+  const handleResult = (data, amount) => {
+    setResult(data);
+    setHistory(p=>[{...data,amount,time:new Date().toLocaleTimeString()},...p].slice(0,7));
+    setStats(p=>({checks:p.checks+1,fraud:p.fraud+(data.is_fraud?1:0),totalRisk:p.totalRisk+data.fraud_probability}));
+  };
 
-  document.getElementById('dModel').textContent=data.model;
-  document.getElementById('dThreshold').textContent=(data.threshold*100).toFixed(0)+'% decision threshold';
-  document.getElementById('dTime').textContent=new Date().toLocaleTimeString();
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navbar/>
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <StatsRow stats={stats}/>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
+          <Form onResult={handleResult}/>
+          <div className="flex flex-col gap-4 lg:sticky lg:top-20">
+            <ResultPanel result={result}/>
+            <HistoryPanel history={history}/>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
 
-  // ── Reasons ──────────────────────────────────────────────────────────────
-  const reasons=data.reasons||[];
-  const wrap=document.getElementById('reasonsWrap');
-  const list=document.getElementById('reasonsList');
-  if(reasons.length){
-    list.innerHTML=reasons.map(r=>`
-      <div class="reason-item ${r.flag?'reason-flag':'reason-ok'}">
-        <span class="reason-icon">${r.flag?'▲':'✓'}</span>
-        <span>${r.text}</span>
-      </div>`).join('');
-    wrap.style.display='block';
-  } else {
-    wrap.style.display='none';
-  }
-}
-
-let histItems=[];
-function addToHistory(data,amount){
-  const risk=data.risk_level;
-  const dotColor={LOW:'var(--low)',MEDIUM:'var(--medium)',HIGH:'var(--high)'}[risk];
-  const chipClass={LOW:'c-low',MEDIUM:'c-medium',HIGH:'c-high'}[risk];
-  const pct=Math.round(data.fraud_probability*100);
-  histItems.unshift({data,amount,time:new Date().toLocaleTimeString()});
-  if(histItems.length>7)histItems.pop();
-  document.getElementById('histCount').textContent=histItems.length+' check'+(histItems.length!==1?'s':'');
-
-  const container=document.getElementById('histContainer');
-  container.innerHTML='<div class="h-list">'+histItems.map(h=>{
-    const r=h.data.risk_level;
-    const dc={LOW:'var(--low)',MEDIUM:'var(--medium)',HIGH:'var(--high)'}[r];
-    const cc={LOW:'c-low',MEDIUM:'c-medium',HIGH:'c-high'}[r];
-    const p=Math.round(h.data.fraud_probability*100);
-    return`<div class="h-item"><div class="h-left"><div class="h-dot" style="background:${dc}"></div><div><div class="h-amt">$${parseFloat(h.amount).toFixed(2)}</div><div class="h-time">${h.time}</div></div></div><div class="h-right"><span class="h-pct" style="color:${dc}">${p}%</span><span class="chip ${cc}">${r}</span></div></div>`;
-  }).join('')+'</div>';
-}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
