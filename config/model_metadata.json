@@ -1,0 +1,162 @@
+{
+  "best_model": "XGBoost",
+  "deploy_model": "XGBoost",
+  "feature_order": [
+    "tx_hour",
+    "tx_day",
+    "tx_month",
+    "tx_dayofweek",
+    "tx_is_weekend",
+    "tx_is_night",
+    "amount_abs",
+    "is_negative",
+    "amount_log",
+    "amount_to_limit_ratio",
+    "amount_to_income_ratio",
+    "age_at_tx",
+    "years_to_retirement",
+    "debt_to_income",
+    "credit_score",
+    "num_credit_cards",
+    "num_cards_issued",
+    "credit_limit",
+    "yearly_income",
+    "total_debt",
+    "per_capita_income",
+    "has_chip_flag",
+    "use_chip_enc",
+    "gender_enc",
+    "card_type_enc",
+    "card_brand_enc",
+    "merchant_state_enc",
+    "mcc_enc",
+    "time_since_last_tx",
+    "tx_count_24h",
+    "amount_sum_24h",
+    "tx_count_7d",
+    "amount_sum_7d",
+    "user_mean_amt",
+    "user_std_amt",
+    "amount_vs_user_mean"
+  ],
+  "split": {
+    "type": "stratified_random_70_15_15",
+    "random_seed": 42,
+    "train_rows": 6240474,
+    "val_rows": 1337244,
+    "test_rows": 1337245
+  },
+  "scale_pos_weight": 667.7177453921989,
+  "tuned_thresholds": {
+    "XGBoost": 0.9963353872299194,
+    "LightGBM": 0.9143126204508308,
+    "RandomForest": 0.8181427271646111,
+    "LogisticRegression": 0.9587894929872779,
+    "MLP": 0.9927811026573181
+  },
+  "deploy_threshold": 0.5,
+  "metrics_default": [
+    {
+      "Model": "XGBoost",
+      "Threshold": 0.5,
+      "Precision": 0.8485,
+      "Recall": 0.832,
+      "F1": 0.8402,
+      "PR_AUC": 0.8901,
+      "ROC_AUC": 0.9966,
+      "Train_s": 16.2
+    },
+    {
+      "Model": "LightGBM",
+      "Threshold": 0.5,
+      "Precision": 0.4485,
+      "Recall": 0.788,
+      "F1": 0.5716,
+      "PR_AUC": 0.7332,
+      "ROC_AUC": 0.9902,
+      "Train_s": 123.1
+    },
+    {
+      "Model": "MLP",
+      "Threshold": 0.5,
+      "Precision": 0.0297,
+      "Recall": 0.904,
+      "F1": 0.0574,
+      "PR_AUC": 0.5422,
+      "ROC_AUC": 0.9767,
+      "Train_s": 1522.3
+    },
+    {
+      "Model": "RandomForest",
+      "Threshold": 0.5,
+      "Precision": 0.1078,
+      "Recall": 0.763,
+      "F1": 0.1889,
+      "PR_AUC": 0.2773,
+      "ROC_AUC": 0.9761,
+      "Train_s": 261.4
+    },
+    {
+      "Model": "LogisticRegression",
+      "Threshold": 0.5,
+      "Precision": 0.0064,
+      "Recall": 0.788,
+      "F1": 0.0128,
+      "PR_AUC": 0.0279,
+      "ROC_AUC": 0.8882,
+      "Train_s": 20.3
+    }
+  ],
+  "metrics_tuned": [
+    {
+      "Model": "XGBoost",
+      "Threshold": 0.9963,
+      "Precision": 0.9963,
+      "Recall": 0.665,
+      "F1": 0.7976,
+      "PR_AUC": 0.8901,
+      "ROC_AUC": 0.9966,
+      "Train_s": 16.2
+    },
+    {
+      "Model": "LightGBM",
+      "Threshold": 0.9143,
+      "Precision": 0.7955,
+      "Recall": 0.6245,
+      "F1": 0.6997,
+      "PR_AUC": 0.7332,
+      "ROC_AUC": 0.9902,
+      "Train_s": 123.1
+    },
+    {
+      "Model": "MLP",
+      "Threshold": 0.9928,
+      "Precision": 0.6857,
+      "Recall": 0.4855,
+      "F1": 0.5685,
+      "PR_AUC": 0.5422,
+      "ROC_AUC": 0.9767,
+      "Train_s": 1522.3
+    },
+    {
+      "Model": "RandomForest",
+      "Threshold": 0.8181,
+      "Precision": 0.305,
+      "Recall": 0.351,
+      "F1": 0.3264,
+      "PR_AUC": 0.2773,
+      "ROC_AUC": 0.9761,
+      "Train_s": 261.4
+    },
+    {
+      "Model": "LogisticRegression",
+      "Threshold": 0.9588,
+      "Precision": 0.0507,
+      "Recall": 0.1875,
+      "F1": 0.0798,
+      "PR_AUC": 0.0279,
+      "ROC_AUC": 0.8882,
+      "Train_s": 20.3
+    }
+  ]
+}

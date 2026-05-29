@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FraudShield — AI Fraud Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F6FA;
+  --white:#FFFFFF;
+  --surface:#FFFFFF;
+  --surface2:#F8FAFC;
+  --border:#E2E8F0;
+  --border2:#CBD5E1;
+  --accent:#3B6EF5;
+  --accent-light:#EEF3FE;
+  --accent-dark:#2952D9;
+  --teal:#0D9488;
+  --teal-light:#F0FDFA;
+  --low:#16A34A;
+  --low-bg:#F0FDF4;
+  --medium:#D97706;
+  --medium-bg:#FFFBEB;
+  --high:#DC2626;
+  --high-bg:#FEF2F2;
+  --text:#0F172A;
+  --text2:#475569;
+  --text3:#94A3B8;
+  --text4:#CBD5E1;
+  --shadow-sm:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+  --shadow:0 4px 16px rgba(15,23,42,.07),0 1px 4px rgba(15,23,42,.04);
+  --shadow-lg:0 12px 40px rgba(15,23,42,.1),0 4px 12px rgba(15,23,42,.06);
+  --radius:14px;
+  --radius-sm:9px;
+  --radius-xs:6px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+/* ── TOPBAR ── */
+.topbar{
+  position:sticky;top:0;z-index:200;
+  height:60px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;
+  background:rgba(255,255,255,0.92);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
+  box-shadow:var(--shadow-sm);
+}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-logo{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,#3B6EF5,#0D9488);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;box-shadow:0 4px 12px rgba(59,110,245,.3);
+  flex-shrink:0;
+}
+.brand-name{font-weight:800;font-size:1.05rem;color:var(--text);letter-spacing:-.4px}
+.brand-name span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:.72rem;font-weight:600;border:1px solid}
+.pill-live{background:var(--low-bg);border-color:rgba(22,163,74,.2);color:var(--low)}
+.pill-live::before{content:'';width:6px;height:6px;background:var(--low);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.pill-model{background:var(--accent-light);border-color:rgba(59,110,245,.2);color:var(--accent)}
+
+/* ── LAYOUT ── */
+.wrapper{max-width:1360px;margin:0 auto;padding:24px 24px 60px;display:grid;grid-template-columns:1fr 390px;gap:20px;align-items:start}
+@media(max-width:1100px){.wrapper{grid-template-columns:1fr}}
+
+/* ── STATS ROW ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.stat-card{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;gap:14px;
+}
+.stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.si-blue{background:var(--accent-light)}
+.si-red{background:var(--high-bg)}
+.si-teal{background:var(--teal-light)}
+.stat-info{}
+.stat-val{font-size:1.35rem;font-weight:800;letter-spacing:-.6px;line-height:1}
+.stat-key{font-size:.7rem;color:var(--text3);font-weight:500;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+/* ── BLOCK ── */
+.block{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  margin-bottom:14px;box-shadow:var(--shadow-sm);
+  transition:box-shadow .2s;
+}
+.block:hover{box-shadow:var(--shadow)}
+.block-header{
+  display:flex;align-items:center;gap:10px;padding:14px 18px;
+  cursor:pointer;user-select:none;
+  border-bottom:1px solid transparent;transition:border-color .2s,background .15s;
+}
+.block-header:hover{background:#FAFBFF}
+.block-header.open{border-bottom-color:var(--border)}
+.block-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.bi-blue  {background:var(--accent-light);color:var(--accent)}
+.bi-teal  {background:var(--teal-light);color:var(--teal)}
+.bi-amber {background:#FFFBEB;color:#D97706}
+.bi-purple{background:#F5F3FF;color:#7C3AED}
+.block-title{font-weight:600;font-size:.85rem;color:var(--text);flex:1}
+.block-sub{font-size:.71rem;color:var(--text3);margin-right:6px}
+.chevron{font-size:.6rem;color:var(--text3);transition:transform .22s}
+.chevron.open{transform:rotate(180deg)}
+.block-body{padding:16px 18px;display:none}
+.block-body.open{display:block}
+
+/* ── FORM GRID ── */
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:12px}
+.fg-2{grid-column:span 2}
+.fgroup{display:flex;flex-direction:column;gap:5px}
+.fgroup label{font-size:.72rem;font-weight:600;color:var(--text2);letter-spacing:.03em}
+.fgroup input,.fgroup select{
+  background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 12px;color:var(--text);font-size:.85rem;font-family:'Inter',sans-serif;
+  outline:none;transition:border-color .18s,box-shadow .18s,background .18s;width:100%;
+}
+.fgroup input:hover,.fgroup select:hover{border-color:var(--border2);background:var(--white)}
+.fgroup input:focus,.fgroup select:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,110,245,.12);background:var(--white)
+}
+.fgroup .hint{font-size:.68rem;color:var(--text3);line-height:1.4}
+
+/* ── SEGMENTED CONTROL ── */
+.seg-wrap{display:flex;gap:0;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.seg-btn{
+  flex:1;padding:8px 6px;border:none;background:transparent;font-family:'Inter',sans-serif;
+  font-size:.8rem;font-weight:500;color:var(--text2);cursor:pointer;
+  transition:background .15s,color .15s;text-align:center;
+}
+.seg-btn.active{background:var(--accent);color:#fff;font-weight:600}
+.seg-btn:not(.active):hover{background:var(--border)}
+
+/* ── MCC SEARCH ── */
+.mcc-wrap{position:relative}
+.mcc-input-row{display:flex;gap:8px;align-items:stretch}
+.mcc-search{
+  flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  padding:9px 12px;color:var(--text);font-size:.85rem;font-family:'Inter',sans-serif;
+  outline:none;transition:border-color .18s,box-shadow .18s,background .18s;
+}
+.mcc-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,110,245,.12);background:var(--white)}
+.mcc-dropdown{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:400;
+  background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);
+  max-height:240px;overflow-y:auto;display:none;
+  box-shadow:var(--shadow-lg);
+}
+.mcc-dropdown.show{display:block}
+.mcc-opt{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--border);
+  transition:background .12s;
+}
+.mcc-opt:last-child{border-bottom:none}
+.mcc-opt:hover{background:var(--accent-light)}
+.mcc-opt-name{font-size:.82rem;font-weight:500;color:var(--text);flex:1}
+.mcc-opt-code{font-size:.78rem;color:var(--accent);font-weight:700;background:rgba(59,110,245,.08);padding:3px 8px;border-radius:5px;flex-shrink:0;min-width:42px;text-align:center;letter-spacing:.3px}
+.mcc-selected-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--teal-light);border:1px solid rgba(13,148,136,.2);
+  color:var(--teal);border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:600;margin-top:6px;
+}
+.mcc-selected-tag .tag-code{background:rgba(13,148,136,.12);border-radius:4px;padding:1px 6px;font-size:.7rem}
+
+/* ── VELOCITY NOTE ── */
+.vel-note{
+  background:#F8FAFC;border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 14px;font-size:.76rem;color:var(--text2);margin-bottom:14px;line-height:1.6;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.vel-note-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+
+/* ── SUBMIT ── */
+.submit-area{margin-top:4px}
+.btn-analyze{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  border:none;border-radius:var(--radius);color:#fff;
+  font-size:.9rem;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s,transform .1s,box-shadow .2s;
+  box-shadow:0 4px 20px rgba(59,110,245,.3);letter-spacing:.01em;
+}
+.btn-analyze:hover{opacity:.93;box-shadow:0 6px 28px rgba(59,110,245,.4);transform:translateY(-1px)}
+.btn-analyze:active{transform:scale(.99) translateY(0)}
+.btn-analyze:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
+.spin{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite;display:none;flex-shrink:0}
+@keyframes rot{to{transform:rotate(360deg)}}
+.err-box{
+  background:var(--high-bg);border:1px solid rgba(220,38,38,.2);
+  border-radius:var(--radius-sm);padding:10px 14px;
+  font-size:.78rem;color:var(--high);margin-top:10px;display:none;line-height:1.5;
+}
+
+/* ── RIGHT PANEL ── */
+.right{position:sticky;top:76px;display:flex;flex-direction:column;gap:14px}
+
+/* ── RESULT CARD ── */
+.result-card{
+  background:var(--white);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+  transition:border-color .35s,box-shadow .35s;
+}
+.result-card.s-legit {border-color:rgba(22,163,74,.3);box-shadow:0 4px 24px rgba(22,163,74,.08)}
+.result-card.s-medium{border-color:rgba(217,119,6,.3);box-shadow:0 4px 24px rgba(217,119,6,.08)}
+.result-card.s-fraud {border-color:rgba(220,38,38,.3);box-shadow:0 4px 24px rgba(220,38,38,.1)}
+
+.result-top{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.result-top-label{font-size:.75rem;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:7px}
+.rtl-dot{width:7px;height:7px;border-radius:50%;background:var(--border2)}
+.rtl-dot.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+
+/* ── EMPTY ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 20px;text-align:center}
+.empty-icon{font-size:2.6rem;opacity:.22;filter:grayscale(.5)}
+.empty-h{font-size:.88rem;font-weight:700;color:var(--text2)}
+.empty-p{font-size:.76rem;color:var(--text3);line-height:1.65;max-width:220px}
+
+/* ── RESULT BODY ── */
+.result-body{padding:20px 18px;display:none}
+
+/* ── GAUGE ── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:16px}
+.gauge-wrap canvas{max-width:195px;margin-bottom:-44px}
+.gauge-pct{font-size:2.15rem;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.gauge-sub{font-size:.68rem;color:var(--text3);font-weight:500;margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── VERDICT ── */
+.verdict{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:.85rem;font-weight:700;margin-bottom:16px;letter-spacing:.02em;border:1px solid}
+.v-legit {background:var(--low-bg);  border-color:rgba(22,163,74,.22); color:var(--low)}
+.v-medium{background:var(--medium-bg);border-color:rgba(217,119,6,.22);color:var(--medium)}
+.v-fraud {background:var(--high-bg); border-color:rgba(220,38,38,.22); color:var(--high)}
+
+/* ── METRICS ── */
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.metric-tile{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 8px;text-align:center}
+.metric-val{font-size:1rem;font-weight:800;letter-spacing:-.3px;margin-bottom:2px}
+.metric-key{font-size:.63rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+
+/* ── RISK BAR ── */
+.risk-wrap{margin-bottom:14px}
+.risk-labels{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text3);font-weight:500;margin-bottom:5px}
+.risk-track{height:5px;background:var(--surface2);border-radius:99px;overflow:hidden;border:1px solid var(--border)}
+.risk-fill{height:100%;border-radius:99px;transition:width .9s cubic-bezier(.4,0,.2,1);width:0%}
+
+/* ── DETAILS ── */
+.details{border-top:1px solid var(--border);padding-top:12px}
+.drow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.drow:last-child{border-bottom:none}
+.dk{font-size:.73rem;color:var(--text3);font-weight:500}
+.dv{font-size:.78rem;font-weight:600;color:var(--text)}
+
+/* ── REASONS ── */
+.reasons-wrap{margin-top:14px;border-top:1px solid var(--border);padding-top:12px;display:none}
+.reasons-title{font-size:.68rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.reason-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:5px;font-size:.78rem;line-height:1.4;font-weight:500}
+.reason-item:last-child{margin-bottom:0}
+.reason-flag{background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.15);color:var(--text)}
+.reason-flag .reason-icon{color:#DC2626;flex-shrink:0;margin-top:1px}
+.reason-ok{background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.15);color:var(--text)}
+.reason-ok .reason-icon{color:#16A34A;flex-shrink:0;margin-top:1px}
+
+/* ── HISTORY ── */
+.history-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)}
+.history-hd{font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.history-hd span{color:var(--text3);font-weight:400;font-size:.7rem}
+.history-empty{font-size:.76rem;color:var(--text3);text-align:center;padding:16px 0}
+.h-list{display:flex;flex-direction:column;gap:7px}
+.h-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface2);border:1px solid var(--border);border-radius:9px;
+  padding:9px 12px;animation:slideIn .25s ease;cursor:default;
+  transition:background .15s;
+}
+.h-item:hover{background:var(--white)}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.h-left{display:flex;align-items:center;gap:9px}
+.h-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.h-amt{font-size:.82rem;font-weight:700;color:var(--text)}
+.h-time{font-size:.67rem;color:var(--text3)}
+.h-right{display:flex;align-items:center;gap:7px}
+.h-pct{font-size:.8rem;font-weight:700}
+.chip{padding:2px 8px;border-radius:5px;font-size:.66rem;font-weight:700;letter-spacing:.04em;border:1px solid}
+.c-low   {background:var(--low-bg);   border-color:rgba(22,163,74,.2); color:var(--low)}
+.c-medium{background:var(--medium-bg);border-color:rgba(217,119,6,.2); color:var(--medium)}
+.c-high  {background:var(--high-bg);  border-color:rgba(220,38,38,.2); color:var(--high)}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🛡</div>
+    <span class="brand-name">Fraud<span>Shield</span></span>
+  </div>
+  <div class="topbar-right">
+    <span class="pill pill-model">XGBoost · Threshold 50%</span>
+    <span class="pill pill-live">Live Detection</span>
+  </div>
+</header>
+
+<div class="wrapper">
+
+  <!-- ═══ LEFT: FORM ═══ -->
+  <div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-blue">🔍</div>
+        <div class="stat-info">
+          <div class="stat-val" id="sTotalChecks">0</div>
+          <div class="stat-key">Total Checks</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-red">🚨</div>
+        <div class="stat-info">
+          <div class="stat-val" id="sFraudFound" style="color:var(--high)">0</div>
+          <div class="stat-key">Fraud Detected</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-teal">📊</div>
+        <div class="stat-info">
+          <div class="stat-val" id="sAvgRisk" style="color:var(--teal)">—</div>
+          <div class="stat-key">Avg Risk Score</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction Details -->
+    <div class="block">
+      <div class="block-header open" onclick="toggle(this)">
+        <div class="block-icon bi-blue">💳</div>
+        <div class="block-title">Transaction Details</div>
+        <span class="block-sub">Amount · Channel · Merchant</span>
+        <span class="chevron open">▼</span>
+      </div>
+      <div class="block-body open">
+        <div class="fg">
+          <div class="fgroup fg-2">
+            <label>Transaction Amount (USD)</label>
+            <input type="number" id="amount" value="150.75" step="0.01"/>
+            <span class="hint">Negative values represent credits or refunds</span>
+          </div>
+          <div class="fgroup">
+            <label>Date &amp; Time</label>
+            <input type="datetime-local" id="timestamp"/>
+          </div>
+          <div class="fgroup">
+            <label>Transaction Channel</label>
+            <div class="seg-wrap" id="chipSeg">
+              <button class="seg-btn active" onclick="setSeg(this,'Online Transaction')">Online</button>
+              <button class="seg-btn" onclick="setSeg(this,'Chip Transaction')">Chip</button>
+              <button class="seg-btn" onclick="setSeg(this,'Swipe Transaction')">Swipe</button>
+            </div>
+            <input type="hidden" id="use_chip" value="Online Transaction"/>
+          </div>
+          <div class="fgroup fg-2">
+            <label>Merchant Category (MCC)</label>
+            <div class="mcc-wrap">
+              <input class="mcc-search" id="mccSearch" placeholder="Type code or category name, e.g. 5411 or Grocery…" autocomplete="off" oninput="filterMCC()" onfocus="openMCC()" onblur="closeMCC()"/>
+              <div class="mcc-dropdown" id="mccDrop"></div>
+            </div>
+            <div id="mccTag" style="display:none" class="mcc-selected-tag">
+              <span>📂</span>
+              <span id="mccTagName">—</span>
+              <span class="tag-code" id="mccTagCode">—</span>
+            </div>
+            <input type="hidden" id="mcc_val" value="5411"/>
+          </div>
+          <div class="fgroup">
+            <label>Merchant State</label>
+            <select id="merchant_state">
+              <option value="Unknown">Unknown / Foreign</option>
+              <optgroup label="── Popular ──">
+                <option value="CA">CA — California</option>
+                <option value="TX">TX — Texas</option>
+                <option value="NY">NY — New York</option>
+                <option value="FL">FL — Florida</option>
+                <option value="IL">IL — Illinois</option>
+              </optgroup>
+              <optgroup label="── All States ──">
+                <option value="AL">AL — Alabama</option><option value="AK">AK — Alaska</option>
+                <option value="AZ">AZ — Arizona</option><option value="AR">AR — Arkansas</option>
+                <option value="CO">CO — Colorado</option><option value="CT">CT — Connecticut</option>
+                <option value="DE">DE — Delaware</option><option value="GA">GA — Georgia</option>
+                <option value="HI">HI — Hawaii</option><option value="ID">ID — Idaho</option>
+                <option value="IN">IN — Indiana</option><option value="IA">IA — Iowa</option>
+                <option value="KS">KS — Kansas</option><option value="KY">KY — Kentucky</option>
+                <option value="LA">LA — Louisiana</option><option value="ME">ME — Maine</option>
+                <option value="MD">MD — Maryland</option><option value="MA">MA — Massachusetts</option>
+                <option value="MI">MI — Michigan</option><option value="MN">MN — Minnesota</option>
+                <option value="MS">MS — Mississippi</option><option value="MO">MO — Missouri</option>
+                <option value="MT">MT — Montana</option><option value="NE">NE — Nebraska</option>
+                <option value="NV">NV — Nevada</option><option value="NH">NH — New Hampshire</option>
+                <option value="NJ">NJ — New Jersey</option><option value="NM">NM — New Mexico</option>
+                <option value="NC">NC — North Carolina</option><option value="ND">ND — North Dakota</option>
+                <option value="OH">OH — Ohio</option><option value="OK">OK — Oklahoma</option>
+                <option value="OR">OR — Oregon</option><option value="PA">PA — Pennsylvania</option>
+                <option value="RI">RI — Rhode Island</option><option value="SC">SC — South Carolina</option>
+                <option value="SD">SD — South Dakota</option><option value="TN">TN — Tennessee</option>
+                <option value="UT">UT — Utah</option><option value="VT">VT — Vermont</option>
+                <option value="VA">VA — Virginia</option><option value="WA">WA — Washington</option>
+                <option value="WV">WV — West Virginia</option><option value="WI">WI — Wisconsin</option>
+                <option value="WY">WY — Wyoming</option><option value="DC">DC — Washington D.C.</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cardholder -->
+    <div class="block">
+      <div class="block-header open" onclick="toggle(this)">
+        <div class="block-icon bi-teal">👤</div>
+        <div class="block-title">Cardholder Profile</div>
+        <span class="block-sub">Demographics · Finances</span>
+        <span class="chevron open">▼</span>
+      </div>
+      <div class="block-body open">
+        <div class="fg">
+          <div class="fgroup">
+            <label>Birth Year</label>
+            <input type="number" id="birth_year" value="1985" min="1920" max="2005"/>
+          </div>
+          <div class="fgroup">
+            <label>Current Age</label>
+            <input type="number" id="current_age" value="38" min="18" max="100"/>
+          </div>
+          <div class="fgroup">
+            <label>Retirement Age</label>
+            <input type="number" id="retirement_age" value="65" min="40" max="80"/>
+          </div>
+          <div class="fgroup">
+            <label>Gender</label>
+            <select id="gender">
+              <option>Male</option>
+              <option>Female</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Yearly Income ($)</label>
+            <input type="number" id="yearly_income" value="75000"/>
+          </div>
+          <div class="fgroup">
+            <label>Total Debt ($)</label>
+            <input type="number" id="total_debt" value="12000"/>
+          </div>
+          <div class="fgroup">
+            <label>Credit Limit ($)</label>
+            <input type="number" id="credit_limit" value="10000"/>
+          </div>
+          <div class="fgroup">
+            <label>Credit Score</label>
+            <input type="number" id="credit_score" value="720" min="300" max="850"/>
+          </div>
+          <div class="fgroup">
+            <label>Credit Cards Held</label>
+            <input type="number" id="num_credit_cards" value="2" min="1"/>
+          </div>
+          <div class="fgroup">
+            <label>Per Capita Income ($)</label>
+            <input type="number" id="per_capita_income" value="35000"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Info -->
+    <div class="block">
+      <div class="block-header open" onclick="toggle(this)">
+        <div class="block-icon bi-amber">🏦</div>
+        <div class="block-title">Card Information</div>
+        <span class="block-sub">Type · Brand · Chip</span>
+        <span class="chevron open">▼</span>
+      </div>
+      <div class="block-body open">
+        <div class="fg">
+          <div class="fgroup">
+            <label>Card Type</label>
+            <div class="seg-wrap">
+              <button class="seg-btn active" onclick="setSeg(this,'Credit')" id="ctCredit">Credit</button>
+              <button class="seg-btn" onclick="setSeg(this,'Debit')" id="ctDebit">Debit</button>
+            </div>
+            <input type="hidden" id="card_type" value="Credit"/>
+          </div>
+          <div class="fgroup">
+            <label>Card Brand</label>
+            <select id="card_brand">
+              <option>Visa</option>
+              <option>Mastercard</option>
+              <option>Amex</option>
+              <option>Discover</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>EMV Chip</label>
+            <div class="seg-wrap">
+              <button class="seg-btn active" onclick="setSeg(this,'YES')">Yes</button>
+              <button class="seg-btn" onclick="setSeg(this,'NO')">No</button>
+            </div>
+            <input type="hidden" id="has_chip" value="YES"/>
+          </div>
+          <div class="fgroup">
+            <label>Total Cards Issued</label>
+            <input type="number" id="num_cards_issued" value="1" min="1"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Velocity -->
+    <div class="block">
+      <div class="block-header" onclick="toggle(this)">
+        <div class="block-icon bi-purple">⚡</div>
+        <div class="block-title">Transaction Velocity</div>
+        <span class="block-sub">Historical patterns · Optional</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="block-body">
+        <div class="vel-note">
+          <span class="vel-note-icon">ℹ️</span>
+          Historical spending patterns improve prediction accuracy. Default values assume a new or unknown cardholder.
+        </div>
+        <div class="fg">
+          <div class="fgroup">
+            <label>Hours Since Last Tx</label>
+            <input type="number" id="time_since_last_tx" value="24" step="0.1" min="0"/>
+            <span class="hint">Max 720 hrs (30 days)</span>
+          </div>
+          <div class="fgroup">
+            <label>Tx Count — 24h</label>
+            <input type="number" id="tx_count_24h" value="2" min="0"/>
+          </div>
+          <div class="fgroup">
+            <label>Spend — 24h ($)</label>
+            <input type="number" id="amount_sum_24h" value="85" min="0"/>
+          </div>
+          <div class="fgroup">
+            <label>Tx Count — 7 Days</label>
+            <input type="number" id="tx_count_7d" value="8" min="0"/>
+          </div>
+          <div class="fgroup">
+            <label>Spend — 7 Days ($)</label>
+            <input type="number" id="amount_sum_7d" value="450" min="0"/>
+          </div>
+          <div class="fgroup">
+            <label>Historical Mean ($)</label>
+            <input type="number" id="user_mean_amt" value="67" min="0"/>
+          </div>
+          <div class="fgroup">
+            <label>Historical Std Dev ($)</label>
+            <input type="number" id="user_std_amt" value="120" min="1"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-area">
+      <button class="btn-analyze" id="submitBtn" onclick="runPrediction()">
+        <div class="spin" id="spinner"></div>
+        <span id="btnText">Analyze Transaction</span>
+      </button>
+      <div class="err-box" id="errBox"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ RIGHT: RESULT ═══ -->
+  <div class="right">
+
+    <div class="result-card" id="resultCard">
+      <div class="result-top">
+        <div class="result-top-label"><span class="rtl-dot" id="rtlDot"></span>Prediction Result</div>
+      </div>
+      <div class="empty" id="emptyState">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-h">No analysis yet</div>
+        <div class="empty-p">Complete the form and click <strong>Analyze Transaction</strong> for an instant fraud prediction.</div>
+      </div>
+      <div class="result-body" id="resultBody">
+        <div class="gauge-wrap">
+          <canvas id="gaugeCanvas" width="195" height="115"></canvas>
+          <div class="gauge-pct" id="gaugePct">—</div>
+          <div class="gauge-sub">Fraud Probability</div>
+        </div>
+        <div class="verdict" id="verdictEl">—</div>
+        <div class="metric-grid">
+          <div class="metric-tile"><div class="metric-val" id="mProb">—</div><div class="metric-key">Probability</div></div>
+          <div class="metric-tile"><div class="metric-val" id="mRisk">—</div><div class="metric-key">Risk Level</div></div>
+          <div class="metric-tile"><div class="metric-val" id="mDecision">—</div><div class="metric-key">Decision</div></div>
+        </div>
+        <div class="risk-wrap">
+          <div class="risk-labels"><span>Risk Score</span><span id="riskLabel">—</span></div>
+          <div class="risk-track"><div class="risk-fill" id="riskFill"></div></div>
+        </div>
+        <div class="details">
+          <div class="drow"><span class="dk">Model</span><span class="dv" id="dModel">—</span></div>
+          <div class="drow"><span class="dk">Threshold</span><span class="dv" id="dThreshold">—</span></div>
+          <div class="drow"><span class="dk">Analyzed at</span><span class="dv" id="dTime">—</span></div>
+        </div>
+        <div class="reasons-wrap" id="reasonsWrap">
+          <div class="reasons-title">Why this result?</div>
+          <div id="reasonsList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="history-card">
+      <div class="history-hd">
+        Recent Checks
+        <span id="histCount">0 checks</span>
+      </div>
+      <div id="histContainer"><div class="history-empty">No checks yet</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── MCC DATA ── */
+const MCC=[
+  [5411,'Grocery Stores & Supermarkets'],[5912,'Drug Stores & Pharmacies'],
+  [5812,'Restaurants & Eating Places'],[5541,'Service Stations — Gas'],
+  [5311,'Department Stores'],[5732,'Electronics Stores'],
+  [5945,'Hobby, Toy & Game Shops'],[5651,'Family Clothing Stores'],
+  [5661,'Shoe Stores'],[5999,'Miscellaneous Retail'],
+  [5691,'Men\'s & Women\'s Clothing'],[5621,'Women\'s Clothing Stores'],
+  [4111,'Local & Suburban Transit'],[4121,'Taxicabs & Limousines'],
+  [4814,'Telephone Services'],[4899,'Cable & Pay TV Services'],
+  [5734,'Computer & Software Stores'],[5045,'Computers & Peripherals'],
+  [7011,'Hotels & Resorts'],[7832,'Movie Theaters'],
+  [5992,'Florists'],[5942,'Book Stores'],
+  [5944,'Jewelry Stores'],[5251,'Hardware Stores'],
+  [5712,'Furniture Stores'],[5722,'Household Appliance Stores'],
+  [5200,'Home Supply & Improvement'],[4816,'Computer Network Services'],
+  [7372,'Software & IT Services'],[8011,'Doctors & Physicians'],
+  [8021,'Dentists & Orthodontists'],[8099,'Health & Medical Services'],
+  [8111,'Legal Services & Attorneys'],[8220,'Colleges & Universities'],
+  [5921,'Package Stores — Liquor'],[5813,'Bars & Taverns'],
+  [5441,'Candy & Confections'],[5462,'Bakeries'],
+  [5533,'Automotive Parts'],[5511,'New Car Dealers'],
+  [5521,'Used Car Dealers'],[7513,'Truck & Utility Rental'],
+  [7542,'Car Washes'],[4722,'Travel Agencies'],
+  [6011,'ATM Cash Dispensing'],[6211,'Security Brokers'],
+  [6300,'Insurance Services'],[5300,'Wholesale Clubs'],
+  [5331,'Variety Stores'],[5399,'General Merchandise'],
+];
+
+let selMCC=5411;
+
+function buildDropdown(q=''){
+  const drop=document.getElementById('mccDrop');
+  const lq=q.toLowerCase();
+  const res=MCC.filter(([c,n])=>!q||c.toString().includes(q)||n.toLowerCase().includes(lq)).slice(0,45);
+  drop.innerHTML=res.length
+    ?res.map(([c,n])=>`<div class="mcc-opt" onmousedown="pickMCC(${c},'${n.replace(/'/g,"\\'")}')"><span class="mcc-opt-code">${c}</span><span class="mcc-opt-name">${n}</span></div>`).join('')
+    :'<div class="mcc-opt" style="color:var(--text3);cursor:default">No results found</div>';
+}
+function openMCC(){
+  const inp=document.getElementById('mccSearch');
+  inp.select();
+  buildDropdown('');
+  document.getElementById('mccDrop').classList.add('show');
+}
+function closeMCC(){setTimeout(()=>document.getElementById('mccDrop').classList.remove('show'),160)}
+function filterMCC(){buildDropdown(document.getElementById('mccSearch').value);document.getElementById('mccDrop').classList.add('show');document.getElementById('mccTag').style.display='none';selMCC=null}
+function pickMCC(code,name){
+  selMCC=code;
+  document.getElementById('mcc_val').value=code;
+  document.getElementById('mccSearch').value=`${code} — ${name}`;
+  document.getElementById('mccTagName').textContent=name;
+  document.getElementById('mccTagCode').textContent=code;
+  document.getElementById('mccTag').style.display='inline-flex';
+}
+// Init MCC
+pickMCC(5411,'Grocery Stores & Supermarkets');
+
+/* ── SEGMENTED CONTROLS ── */
+function setSeg(btn,val){
+  const seg=btn.closest('.seg-wrap');
+  seg.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // find hidden input sibling
+  const hidden=seg.nextElementSibling;
+  if(hidden&&hidden.type==='hidden')hidden.value=val;
+}
+
+/* ── ACCORDION ── */
+function toggle(hdr){
+  const body=hdr.nextElementSibling;
+  const chev=hdr.querySelector('.chevron');
+  const open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  hdr.classList.toggle('open',!open);
+  chev.classList.toggle('open',!open);
+}
+
+/* ── INIT TIMESTAMP ── */
+const now=new Date();
+now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+document.getElementById('timestamp').value=now.toISOString().slice(0,16);
+
+/* ── SESSION STATS ── */
+let totChecks=0,fraudCount=0,probSum=0;
+function updateStats(isFraud,prob){
+  totChecks++;fraudCount+=isFraud?1:0;probSum+=prob;
+  document.getElementById('sTotalChecks').textContent=totChecks;
+  document.getElementById('sFraudFound').textContent=fraudCount;
+  document.getElementById('sAvgRisk').textContent=(probSum/totChecks*100).toFixed(1)+'%';
+}
+
+/* ── GAUGE ── */
+let gaugeChart=null;
+function renderGauge(prob){
+  const ctx=document.getElementById('gaugeCanvas').getContext('2d');
+  const pct=Math.round(prob*100);
+  const color=prob>=.5?'#DC2626':prob>=.3?'#D97706':'#16A34A';
+  if(gaugeChart)gaugeChart.destroy();
+  gaugeChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{datasets:[{data:[pct,100-pct],backgroundColor:[color,'#F1F5F9'],borderWidth:0,circumference:180,rotation:270}]},
+    options:{responsive:false,cutout:'80%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{duration:900,easing:'easeInOutQuart'}}
+  });
+}
+
+/* ── PREDICT ── */
+async function runPrediction(){
+  const btn=document.getElementById('submitBtn');
+  const spin=document.getElementById('spinner');
+  const btnTxt=document.getElementById('btnText');
+  const errBox=document.getElementById('errBox');
+  btn.disabled=true;spin.style.display='block';btnTxt.textContent='Analyzing…';errBox.style.display='none';
+
+  const ts=document.getElementById('timestamp').value;
+  const mccCode=selMCC||parseInt((document.getElementById('mccSearch').value||'5411').split('—')[0].trim())||5411;
+
+  const payload={
+    amount:parseFloat(document.getElementById('amount').value)||0,
+    use_chip:document.getElementById('use_chip').value,
+    mcc:mccCode,
+    merchant_state:document.getElementById('merchant_state').value,
+    timestamp:ts.length===16?ts+':00':ts,
+    birth_year:parseInt(document.getElementById('birth_year').value),
+    current_age:parseInt(document.getElementById('current_age').value),
+    retirement_age:parseInt(document.getElementById('retirement_age').value),
+    gender:document.getElementById('gender').value,
+    yearly_income:parseFloat(document.getElementById('yearly_income').value),
+    total_debt:parseFloat(document.getElementById('total_debt').value),
+    credit_limit:parseFloat(document.getElementById('credit_limit').value),
+    credit_score:parseFloat(document.getElementById('credit_score').value),
+    num_credit_cards:parseInt(document.getElementById('num_credit_cards').value),
+    per_capita_income:parseFloat(document.getElementById('per_capita_income').value),
+    card_type:document.getElementById('card_type').value,
+    card_brand:document.getElementById('card_brand').value,
+    has_chip:document.getElementById('has_chip').value,
+    num_cards_issued:parseInt(document.getElementById('num_cards_issued').value),
+    time_since_last_tx:Math.min(parseFloat(document.getElementById('time_since_last_tx').value)||720,720),
+    tx_count_24h:parseFloat(document.getElementById('tx_count_24h').value)||0,
+    amount_sum_24h:parseFloat(document.getElementById('amount_sum_24h').value)||0,
+    tx_count_7d:parseFloat(document.getElementById('tx_count_7d').value)||0,
+    amount_sum_7d:parseFloat(document.getElementById('amount_sum_7d').value)||0,
+    user_mean_amt:parseFloat(document.getElementById('user_mean_amt').value)||67,
+    user_std_amt:Math.max(parseFloat(document.getElementById('user_std_amt').value)||120,1),
+  };
+
+  try{
+    const res=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.detail||'Prediction failed');
+    renderResult(data,payload.amount);
+    addToHistory(data,payload.amount);
+    updateStats(data.is_fraud,data.fraud_probability);
+  }catch(e){
+    errBox.textContent='⚠ '+e.message;errBox.style.display='block';
+  }finally{
+    btn.disabled=false;spin.style.display='none';btnTxt.textContent='Analyze Transaction';
+  }
+}
+
+function renderResult(data,amount){
+  const prob=data.fraud_probability;
+  const risk=data.risk_level;
+  const isFraud=data.is_fraud;
+  const pct=Math.round(prob*100);
+  const color=prob>=.5?'var(--high)':prob>=.3?'var(--medium)':'var(--low)';
+
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resultBody').style.display='block';
+
+  const card=document.getElementById('resultCard');
+  card.className='result-card '+(isFraud?'s-fraud':risk==='MEDIUM'?'s-medium':'s-legit');
+  document.getElementById('rtlDot').className='rtl-dot live';
+
+  renderGauge(prob);
+  const gp=document.getElementById('gaugePct');
+  gp.textContent=pct+'%';gp.style.color=color;
+
+  const v=document.getElementById('verdictEl');
+  if(isFraud){v.className='verdict v-fraud';v.innerHTML='🚨 &nbsp;FRAUDULENT — BLOCK TRANSACTION'}
+  else if(risk==='MEDIUM'){v.className='verdict v-medium';v.innerHTML='⚠️ &nbsp;SUSPICIOUS — MANUAL REVIEW'}
+  else{v.className='verdict v-legit';v.innerHTML='✅ &nbsp;LEGITIMATE — APPROVE'}
+
+  document.getElementById('mProb').textContent=pct+'%';
+  document.getElementById('mProb').style.color=color;
+  document.getElementById('mRisk').textContent=risk;
+  document.getElementById('mRisk').style.color=color;
+  document.getElementById('mDecision').textContent=isFraud?'Block':'Approve';
+  document.getElementById('mDecision').style.color=isFraud?'var(--high)':'var(--low)';
+
+  document.getElementById('riskLabel').textContent=pct+'%';
+  const fill=document.getElementById('riskFill');
+  fill.style.background=prob>=.5?'#DC2626':prob>=.3?'#D97706':'#16A34A';
+  setTimeout(()=>fill.style.width=pct+'%',60);
+
+  document.getElementById('dModel').textContent=data.model;
+  document.getElementById('dThreshold').textContent=(data.threshold*100).toFixed(0)+'% decision threshold';
+  document.getElementById('dTime').textContent=new Date().toLocaleTimeString();
+
+  // ── Reasons ──────────────────────────────────────────────────────────────
+  const reasons=data.reasons||[];
+  const wrap=document.getElementById('reasonsWrap');
+  const list=document.getElementById('reasonsList');
+  if(reasons.length){
+    list.innerHTML=reasons.map(r=>`
+      <div class="reason-item ${r.flag?'reason-flag':'reason-ok'}">
+        <span class="reason-icon">${r.flag?'▲':'✓'}</span>
+        <span>${r.text}</span>
+      </div>`).join('');
+    wrap.style.display='block';
+  } else {
+    wrap.style.display='none';
+  }
+}
+
+let histItems=[];
+function addToHistory(data,amount){
+  const risk=data.risk_level;
+  const dotColor={LOW:'var(--low)',MEDIUM:'var(--medium)',HIGH:'var(--high)'}[risk];
+  const chipClass={LOW:'c-low',MEDIUM:'c-medium',HIGH:'c-high'}[risk];
+  const pct=Math.round(data.fraud_probability*100);
+  histItems.unshift({data,amount,time:new Date().toLocaleTimeString()});
+  if(histItems.length>7)histItems.pop();
+  document.getElementById('histCount').textContent=histItems.length+' check'+(histItems.length!==1?'s':'');
+
+  const container=document.getElementById('histContainer');
+  container.innerHTML='<div class="h-list">'+histItems.map(h=>{
+    const r=h.data.risk_level;
+    const dc={LOW:'var(--low)',MEDIUM:'var(--medium)',HIGH:'var(--high)'}[r];
+    const cc={LOW:'c-low',MEDIUM:'c-medium',HIGH:'c-high'}[r];
+    const p=Math.round(h.data.fraud_probability*100);
+    return`<div class="h-item"><div class="h-left"><div class="h-dot" style="background:${dc}"></div><div><div class="h-amt">$${parseFloat(h.amount).toFixed(2)}</div><div class="h-time">${h.time}</div></div></div><div class="h-right"><span class="h-pct" style="color:${dc}">${p}%</span><span class="chip ${cc}">${r}</span></div></div>`;
+  }).join('')+'</div>';
+}
+</script>
+</body>
+</html>
