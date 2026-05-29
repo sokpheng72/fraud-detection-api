@@ -318,6 +318,144 @@ const MCCSearch = ({value, onChange}) => {
   );
 };
 
+// ── STATE SEARCH ─────────────────────────────────────────────────────────────
+const STATE_GROUPS = [
+  { g: 'Popular States', items: STATES_POPULAR },
+  { g: 'All States',     items: STATES_ALL },
+];
+const STATES_FLAT = [['Unknown','Unknown / Not Listed'], ...STATES_POPULAR, ...STATES_ALL];
+
+const StateSearch = ({value, onChange}) => {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const wrapRef = useRef(null);
+  const ddSearchRef = useRef(null);
+  const sheetSearchRef = useRef(null);
+
+  const current = STATES_FLAT.find(([c])=>c===value);
+  const label = current ? current[1] : 'Select a state';
+  const query = q.trim().toLowerCase();
+  const filtered = query
+    ? STATES_FLAT.filter(([c,n])=>c.toLowerCase().includes(query)||n.toLowerCase().includes(query))
+    : null;
+
+  useEffect(()=>{
+    if(isMobile) return;
+    const fn=e=>{ if(wrapRef.current&&!wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown',fn);
+    return ()=>document.removeEventListener('mousedown',fn);
+  },[isMobile]);
+
+  useEffect(()=>{
+    if(isMobile&&open){
+      document.body.style.overflow='hidden';
+      setTimeout(()=>sheetSearchRef.current?.focus(),120);
+    } else { document.body.style.overflow=''; }
+    return ()=>{ document.body.style.overflow=''; };
+  },[isMobile,open]);
+
+  const openIt = ()=>{ setQ(''); setOpen(true); if(!isMobile) setTimeout(()=>ddSearchRef.current?.focus(),60); };
+  const pick = (c)=>{ onChange(c); setQ(''); setOpen(false); };
+
+  const renderRow = (c, n, mobile) => (
+    <button key={c} type="button"
+      onMouseDown={!mobile?()=>pick(c):undefined}
+      onClick={mobile?()=>pick(c):undefined}
+      className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-slate-50 last:border-0 transition-colors
+        ${value===c?'bg-blue-50':'hover:bg-slate-50 active:bg-blue-50'}`}>
+      <span className="text-[11px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded min-w-[38px] text-center flex-shrink-0">{c}</span>
+      <span className="text-sm text-slate-700 flex-1 leading-snug">{n}</span>
+      {value===c && <Ic n="tick" size={14} cls="text-blue-500 flex-shrink-0"/>}
+    </button>
+  );
+
+  const renderList = (mobile) => filtered
+    ? filtered.length
+      ? filtered.map(([c,n])=>renderRow(c,n,mobile))
+      : <p className="text-sm text-slate-400 text-center py-8">No results for "{q}"</p>
+    : STATE_GROUPS.map(g=>(
+        <div key={g.g}>
+          <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-y border-slate-100 sticky top-0 z-10">{g.g}</div>
+          {g.items.map(([c,n])=>renderRow(c,n,mobile))}
+        </div>
+      ));
+
+  const SelectedBanner = () => current && value !== 'Unknown' && (
+    <div className="flex items-center gap-2.5 px-3 py-2 mx-2.5 mb-1 mt-1 bg-blue-50 border border-blue-200 rounded-lg">
+      <Ic n="tick" size={13} cls="text-blue-500 flex-shrink-0"/>
+      <span className="text-[11px] text-blue-600 font-semibold flex-shrink-0">Selected:</span>
+      <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded flex-shrink-0">{current[0]}</span>
+      <span className="text-xs text-blue-700 truncate">{current[1]}</span>
+    </div>
+  );
+
+  const mapIcon = `<circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 0 0-8-8z"/>`;
+
+  return (
+    <div ref={wrapRef} className="relative">
+      {/* Trigger */}
+      <button type="button" onClick={openIt}
+        className={`${iCls} flex items-center gap-2.5 text-left pr-3 ${open&&!isMobile?'border-blue-400 ring-2 ring-blue-500/20':''}`}>
+        <SVG ch={mapIcon} size={15} cls="text-slate-400 flex-shrink-0"/>
+        {value!=='Unknown'
+          ? <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">{value}</span>
+          : null}
+        <span className="text-sm text-slate-800 flex-1 truncate">{label}</span>
+        <Ic n="chevron" size={14} cls={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${open&&!isMobile?'rotate-180':''}`}/>
+      </button>
+
+      {/* DESKTOP DROPDOWN */}
+      {!isMobile && open && (
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden" style={{minWidth:280}}>
+          <div className="pt-2"><SelectedBanner/></div>
+          <div className="p-2.5 border-b border-slate-100">
+            <div className="relative">
+              <Ic n="search" size={13} cls="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+              <input ref={ddSearchRef} value={q} onChange={e=>setQ(e.target.value)}
+                placeholder="Type state name or abbreviation…"
+                className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"/>
+            </div>
+          </div>
+          <div className="mcc-list">{renderList(false)}</div>
+        </div>
+      )}
+
+      {/* MOBILE BOTTOM SHEET */}
+      {isMobile && open && ReactDOM.createPortal(
+        <div className="sheet-overlay" onClick={e=>{if(e.target===e.currentTarget)setOpen(false)}}>
+          <div className="sheet-body">
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 bg-slate-300 rounded-full"/>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <p className="text-base font-bold text-slate-900">Merchant State</p>
+                <p className="text-xs text-slate-400 mt-0.5">Select US state or territory</p>
+              </div>
+              <button type="button" onClick={()=>setOpen(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100">
+                <Ic n="close" size={16} cls="text-slate-500"/>
+              </button>
+            </div>
+            <div className="px-4 pt-2 pb-1 flex-shrink-0"><SelectedBanner/></div>
+            <div className="px-4 py-3 border-b border-slate-100 flex-shrink-0">
+              <div className="relative">
+                <Ic n="search" size={15} cls="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                <input ref={sheetSearchRef} value={q} onChange={e=>setQ(e.target.value)}
+                  placeholder="Search state name or abbreviation…"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"/>
+              </div>
+            </div>
+            <div className="sheet-scroll">{renderList(true)}</div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
 // ── SECTION ──────────────────────────────────────────────────────────────────
 const Section = ({icon,title,sub,open,onToggle,children}) => (
   <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-3 overflow-visible">
@@ -601,19 +739,7 @@ const Form = ({onResult}) => {
           </div>
           <div>
             <Label>Merchant State</Label>
-            <Sel value={d.merchant_state} onChange={set('merchant_state')}>
-              <option value="Unknown">Unknown / Not Listed</option>
-              <optgroup label="── Popular States ──">
-                {STATES_POPULAR.map(([code,name])=>(
-                  <option key={code} value={code}>{name} ({code})</option>
-                ))}
-              </optgroup>
-              <optgroup label="── All States ──">
-                {STATES_ALL.map(([code,name])=>(
-                  <option key={code} value={code}>{name} ({code})</option>
-                ))}
-              </optgroup>
-            </Sel>
+            <StateSearch value={d.merchant_state} onChange={set('merchant_state')}/>
           </div>
         </div>
       </Section>
