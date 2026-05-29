@@ -8,11 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { fontFamily: { sans: ['Inter','sans-serif'] } } }
-    }
-  </script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -20,96 +16,148 @@
     *{box-sizing:border-box}
     body{font-family:'Inter',sans-serif}
     .acc-body{overflow:hidden;transition:max-height .32s cubic-bezier(.4,0,.2,1),opacity .25s ease}
-    .acc-open{max-height:2000px;opacity:1}
+    .acc-open{max-height:2400px;opacity:1}
     .acc-closed{max-height:0;opacity:0}
     .fade-up{animation:fadeUp .3s ease both}
     @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     .gauge-fill{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)}
-    .mcc-list{max-height:220px;overflow-y:auto}
+    .mcc-list{max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .mcc-list::-webkit-scrollbar{width:4px}
+    .mcc-list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+    .sheet-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;display:flex;align-items:flex-end;backdrop-filter:blur(2px)}
+    .sheet-body{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:88vh;display:flex;flex-direction:column;animation:slideUp .26s cubic-bezier(.4,0,.2,1);padding-bottom:env(safe-area-inset-bottom,0px)}
+    .sheet-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
     select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%2394A3B8' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;appearance:none;-webkit-appearance:none}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+    input[type=number]{-moz-appearance:textfield}
   </style>
 </head>
 <body class="bg-slate-50 antialiased">
 <div id="root"></div>
-
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
 
-// ─── ICONS (Lucide-style inline SVG) ────────────────────────────────────────
-const SVG = ({ children, size=18, className='' }) => (
+// ── ICONS ────────────────────────────────────────────────────────────────────
+const SVG = ({ch,size=18,cls=''}) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-    className={className}>{children}</svg>
+    className={cls} dangerouslySetInnerHTML={{__html:ch}}/>
 );
-const Icons = {
-  shield:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
-  shieldOk:  <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></>,
-  card:      <><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></>,
-  user:      <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
-  activity:  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>,
-  receipt:   <><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" x2="16" y1="9" y2="9"/><line x1="8" x2="16" y1="13" y2="13"/></>,
-  chevron:   <polyline points="6 9 12 15 18 9"/>,
-  search:    <><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></>,
-  check:     <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>,
-  warn:      <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></>,
-  danger:    <><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></>,
-  zap:       <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
-  bar:       <><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></>,
-  clock:     <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-  trend:     <><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>,
-  loader:    <><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></>,
+const IC = {
+  shield:   `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+  shieldOk: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>`,
+  card:     `<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>`,
+  user:     `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+  activity: `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+  receipt:  `<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" x2="16" y1="9" y2="9"/><line x1="8" x2="16" y1="13" y2="13"/>`,
+  chevron:  `<polyline points="6 9 12 15 18 9"/>`,
+  search:   `<circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/>`,
+  check:    `<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>`,
+  tick:     `<polyline points="20 6 9 17 4 12"/>`,
+  warn:     `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>`,
+  danger:   `<circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/>`,
+  zap:      `<polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>`,
+  bar:      `<line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>`,
+  clock:    `<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,
+  trend:    `<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>`,
+  loader:   `<line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/>`,
+  close:    `<line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/>`,
+  store:    `<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`,
 };
-const Ic = ({ n, size=18, className='' }) => <SVG size={size} className={className}>{Icons[n]}</SVG>;
+const Ic = ({n,size=18,cls=''}) => <SVG ch={IC[n]} size={size} cls={cls}/>;
 
-// ─── MCC DATA ────────────────────────────────────────────────────────────────
-const MCC = [
-  [5411,'Grocery Stores & Supermarkets'],[5912,'Drug Stores & Pharmacies'],
-  [5812,'Restaurants & Eating Places'],[5541,'Service Stations — Gas'],
-  [5311,'Department Stores'],[5732,'Electronics Stores'],
-  [5945,'Hobby, Toy & Game Shops'],[5651,'Family Clothing Stores'],
-  [5661,'Shoe Stores'],[5999,'Miscellaneous Retail'],
-  [5691,"Men's & Women's Clothing"],[5621,"Women's Clothing Stores"],
-  [4111,'Local & Suburban Transit'],[4121,'Taxicabs & Limousines'],
-  [4814,'Telephone Services'],[4899,'Cable & Pay TV Services'],
-  [5734,'Computer & Software Stores'],[5045,'Computers & Peripherals'],
-  [7011,'Hotels & Resorts'],[7832,'Movie Theaters'],[5992,'Florists'],
-  [5942,'Book Stores'],[5944,'Jewelry Stores'],[5251,'Hardware Stores'],
-  [5712,'Furniture Stores'],[5722,'Household Appliance Stores'],
-  [5200,'Home Supply & Improvement'],[4816,'Computer Network Services'],
-  [7372,'Software & IT Services'],[8011,'Doctors & Physicians'],
-  [8021,'Dentists & Orthodontists'],[8099,'Health & Medical Services'],
-  [8111,'Legal Services & Attorneys'],[8220,'Colleges & Universities'],
-  [5921,'Package Stores — Liquor'],[5813,'Bars & Taverns'],
-  [5441,'Candy & Confections'],[5462,'Bakeries'],[5533,'Automotive Parts'],
-  [5511,'New Car Dealers'],[5521,'Used Car Dealers'],[7513,'Truck & Utility Rental'],
-  [7542,'Car Washes'],[4722,'Travel Agencies'],[6011,'ATM Cash Dispensing'],
-  [6211,'Security Brokers'],[6300,'Insurance Services'],[5300,'Wholesale Clubs'],
-  [5331,'Variety Stores'],[5399,'General Merchandise'],
+// ── MCC DATA (grouped) ───────────────────────────────────────────────────────
+const MCC_GROUPS = [
+  {g:'Retail & Shopping', items:[
+    [5411,'Grocery Stores & Supermarkets'],[5912,'Drug Stores & Pharmacies'],
+    [5310,'Discount Stores'],[5311,'Department Stores'],[5300,'Wholesale Clubs'],
+    [5331,'Variety Stores'],[5399,'General Merchandise'],[5999,'Miscellaneous Retail'],
+    [5251,'Hardware Stores'],[5200,'Home Supply & Improvement'],[5712,'Furniture Stores'],
+    [5722,'Household Appliance Stores'],[5944,'Jewelry Stores'],[5992,'Florists'],
+    [5942,'Book Stores'],[5441,'Candy & Confections'],[5462,'Bakeries'],
+  ]},
+  {g:'Clothing & Apparel', items:[
+    [5651,'Family Clothing Stores'],[5661,'Shoe Stores'],
+    [5691,"Men's & Women's Clothing"],[5621,"Women's Ready-to-Wear"],
+    [5699,'Misc Apparel & Accessories'],[5945,'Hobby, Toy & Game Shops'],
+    [5947,'Gift, Card & Novelty Shops'],
+  ]},
+  {g:'Food & Dining', items:[
+    [5812,'Restaurants & Eating Places'],[5814,'Fast Food Restaurants'],
+    [5813,'Bars, Cocktail Lounges & Taverns'],[5921,'Package Stores — Beer & Liquor'],
+  ]},
+  {g:'Auto & Transport', items:[
+    [5541,'Service Stations — Gasoline'],[5542,'Automated Fuel Dispensers'],
+    [5511,'New Motor Vehicle Dealers'],[5521,'Used Car Dealers'],
+    [5533,'Automotive Parts & Supplies'],[7513,'Truck & Utility Trailer Rental'],
+    [7542,'Car Washes'],[7523,'Auto Parking Lots & Garages'],
+    [4111,'Local & Suburban Transit'],[4121,'Taxicabs & Limousines'],
+    [4131,'Bus Lines'],[4511,'Airlines'],[4722,'Travel Agencies'],
+    [7011,'Hotels, Motels & Resorts'],
+  ]},
+  {g:'Tech & Electronics', items:[
+    [5732,'Electronics Stores'],[5734,'Computer & Software Stores'],
+    [5045,'Computers & Peripherals'],[4814,'Telephone Services'],
+    [4816,'Computer Network Services'],[4899,'Cable & Pay TV'],
+    [7372,'Software & IT Services'],
+  ]},
+  {g:'Health & Medical', items:[
+    [8011,'Doctors & Physicians'],[8021,'Dentists & Orthodontists'],
+    [8041,'Chiropractors'],[8042,'Optometrists'],
+    [8099,'Health & Medical Services'],[5122,'Drugs & Druggists Sundries'],
+  ]},
+  {g:'Financial Services', items:[
+    [6011,'ATM Cash Dispensing'],[6012,'Member Financial Institutions'],
+    [6051,'Currency Exchange'],[6211,'Security Brokers & Dealers'],
+    [6300,'Insurance Services'],[6411,'Insurance Agents & Brokers'],
+  ]},
+  {g:'Education & Professional', items:[
+    [8220,'Colleges & Universities'],[8299,'Schools & Educational Services'],
+    [8111,'Legal Services & Attorneys'],[8931,'Accounting & Bookkeeping'],
+  ]},
+  {g:'Entertainment & Recreation', items:[
+    [7832,'Movie Theaters'],[7922,'Theaters & Ticket Agencies'],
+    [7996,'Amusement Parks & Carnivals'],[7999,'Recreation Services'],
+    [5816,'Digital Goods — Games'],[5817,'Digital Goods — Apps'],
+    [5818,'Digital Goods — Streaming'],
+  ]},
+  {g:'Home Services', items:[
+    [1520,'General Contractors'],[1711,'Plumbing & HVAC Contractors'],
+    [1731,'Electrical Contractors'],[7210,'Laundry & Cleaning Services'],
+    [7349,'Building Maintenance Services'],
+  ]},
 ];
+const MCC_FLAT = [...new Map(MCC_GROUPS.flatMap(g=>g.items).map(i=>[i[0],i])).values()];
 
-// ─── BASE COMPONENTS ─────────────────────────────────────────────────────────
+// ── HOOKS ────────────────────────────────────────────────────────────────────
+const useIsMobile = () => {
+  const [m,setM] = useState(()=>window.innerWidth<768);
+  useEffect(()=>{
+    const fn=()=>setM(window.innerWidth<768);
+    window.addEventListener('resize',fn);
+    return ()=>window.removeEventListener('resize',fn);
+  },[]);
+  return m;
+};
+
+// ── BASE COMPONENTS ──────────────────────────────────────────────────────────
 const Label = ({children}) => (
   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">{children}</p>
 );
-
-const inputCls = "w-full px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-400 hover:border-slate-300 transition-all";
-
-const Inp = ({type='text',value,onChange,placeholder,step,min}) => (
+const iCls = "w-full px-3 py-3 text-sm bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 hover:border-slate-300 transition-all";
+const Inp = ({type='text',value,onChange,placeholder,step,min,inputMode}) => (
   <input type={type} value={value} onChange={e=>onChange(e.target.value)}
-    placeholder={placeholder} step={step} min={min} className={inputCls}/>
+    placeholder={placeholder} step={step} min={min} inputMode={inputMode} className={iCls}/>
 );
-
 const Sel = ({value,onChange,children}) => (
-  <select value={value} onChange={e=>onChange(e.target.value)} className={inputCls+" pr-8 cursor-pointer"}>
-    {children}
-  </select>
+  <select value={value} onChange={e=>onChange(e.target.value)} className={iCls+" pr-8 cursor-pointer"}>{children}</select>
 );
-
 const Seg = ({options,value,onChange}) => (
-  <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-slate-50 p-0.5 gap-0.5">
+  <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 gap-0.5">
     {options.map(o=>(
       <button key={o.v} type="button" onClick={()=>onChange(o.v)}
-        className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all duration-150
+        className={`flex-1 py-2.5 text-xs font-semibold rounded-md transition-all duration-150 min-h-[40px]
           ${value===o.v?'bg-white text-blue-600 shadow-sm border border-slate-200':'text-slate-500 hover:text-slate-700'}`}>
         {o.l}
       </button>
@@ -117,52 +165,134 @@ const Seg = ({options,value,onChange}) => (
   </div>
 );
 
-// ─── MCC SEARCH ──────────────────────────────────────────────────────────────
+// ── MCC SEARCH ───────────────────────────────────────────────────────────────
 const MCCSearch = ({value, onChange}) => {
-  const [q,setQ] = useState('');
-  const [open,setOpen] = useState(false);
-  const [label,setLabel] = useState('5411 — Grocery Stores & Supermarkets');
-  const ref = useRef(null);
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const wrapRef = useRef(null);
+  const ddSearchRef = useRef(null);
+  const sheetSearchRef = useRef(null);
 
-  const filtered = MCC.filter(([c,n])=>!q||c.toString().includes(q)||n.toLowerCase().includes(q.toLowerCase())).slice(0,45);
+  const current = MCC_FLAT.find(([c])=>c===value);
+  const label = current ? current[1] : 'Select a category';
+  const query = q.trim().toLowerCase();
+  const filtered = query
+    ? MCC_FLAT.filter(([c,n])=>c.toString().includes(q)||n.toLowerCase().includes(query))
+    : null;
 
+  // Close desktop dropdown on outside click
   useEffect(()=>{
-    const fn = e=>{ if(ref.current&&!ref.current.contains(e.target)) setOpen(false); };
+    if(isMobile) return;
+    const fn=e=>{ if(wrapRef.current&&!wrapRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown',fn);
     return ()=>document.removeEventListener('mousedown',fn);
-  },[]);
+  },[isMobile]);
 
-  const pick = (c,n) => { onChange(c); setLabel(`${c} — ${n}`); setQ(''); setOpen(false); };
+  // Lock body scroll when mobile sheet open
+  useEffect(()=>{
+    if(isMobile&&open){
+      document.body.style.overflow='hidden';
+      setTimeout(()=>sheetSearchRef.current?.focus(),120);
+    } else { document.body.style.overflow=''; }
+    return ()=>{ document.body.style.overflow=''; };
+  },[isMobile,open]);
+
+  const openIt = ()=>{ setQ(''); setOpen(true); if(!isMobile) setTimeout(()=>ddSearchRef.current?.focus(),60); };
+  const pick = (c)=>{ onChange(c); setQ(''); setOpen(false); };
+
+  const ItemRow = ({c,n,onPick}) => (
+    <button type="button"
+      onMouseDown={!isMobile?()=>onPick(c):undefined}
+      onClick={isMobile?()=>onPick(c):undefined}
+      className={`w-full flex items-center gap-3 px-4 py-3 text-left border-b border-slate-50 last:border-0 transition-colors
+        ${value===c?'bg-blue-50':'hover:bg-slate-50 active:bg-blue-50'}`}>
+      <span className="text-[11px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded min-w-[46px] text-center flex-shrink-0 tabular-nums">{c}</span>
+      <span className="text-sm text-slate-700 flex-1 leading-snug">{n}</span>
+      {value===c && <Ic n="tick" size={14} cls="text-blue-500 flex-shrink-0"/>}
+    </button>
+  );
+
+  const ListContent = () => (
+    filtered
+      ? filtered.length
+        ? filtered.map(([c,n])=><ItemRow key={c} c={c} n={n} onPick={pick}/>)
+        : <p className="text-sm text-slate-400 text-center py-8">No results for "{q}"</p>
+      : MCC_GROUPS.map(g=>(
+          <div key={g.g}>
+            <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-y border-slate-100 sticky top-0 z-10">
+              {g.g}
+            </div>
+            {g.items.map(([c,n])=><ItemRow key={c} c={c} n={n} onPick={pick}/>)}
+          </div>
+        ))
+  );
 
   return (
-    <div ref={ref} className="relative">
-      <div className="relative">
-        <Ic n="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-        <input value={open?q:label} onChange={e=>{setQ(e.target.value);setOpen(true)}}
-          onFocus={()=>{setQ('');setOpen(true)}} placeholder="Search code or category…"
-          className={inputCls+" pl-8"}/>
-      </div>
-      {open && (
-        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden mcc-list">
-          {filtered.length ? filtered.map(([c,n])=>(
-            <button key={c} type="button" onMouseDown={()=>pick(c,n)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors">
-              <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md min-w-[46px] text-center flex-shrink-0">{c}</span>
-              <span className="text-sm text-slate-700 truncate">{n}</span>
-            </button>
-          )) : <p className="text-sm text-slate-400 text-center py-4">No results</p>}
+    <div ref={wrapRef} className="relative">
+      {/* Trigger */}
+      <button type="button" onClick={openIt}
+        className={`${iCls} flex items-center gap-2.5 text-left pr-3`}>
+        <Ic n="store" size={15} cls="text-slate-400 flex-shrink-0"/>
+        <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded tabular-nums flex-shrink-0">{value}</span>
+        <span className="text-sm text-slate-800 flex-1 truncate">{label}</span>
+        <Ic n="chevron" size={14} cls={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${open&&!isMobile?'rotate-180':''}`}/>
+      </button>
+
+      {/* DESKTOP DROPDOWN */}
+      {!isMobile && open && (
+        <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden" style={{minWidth:320}}>
+          <div className="p-2.5 border-b border-slate-100">
+            <div className="relative">
+              <Ic n="search" size={13} cls="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+              <input ref={ddSearchRef} value={q} onChange={e=>setQ(e.target.value)}
+                placeholder="Type code or category name…"
+                className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"/>
+            </div>
+          </div>
+          <div className="mcc-list"><ListContent/></div>
         </div>
       )}
-      {!open && <p className="text-xs text-slate-400 mt-1.5 truncate">Selected: <span className="text-blue-600 font-semibold">{label}</span></p>}
+
+      {/* MOBILE BOTTOM SHEET — rendered via portal */}
+      {isMobile && open && ReactDOM.createPortal(
+        <div className="sheet-overlay" onClick={e=>{if(e.target===e.currentTarget)setOpen(false)}}>
+          <div className="sheet-body">
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 bg-slate-300 rounded-full"/>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <p className="text-base font-bold text-slate-900">Merchant Category</p>
+                <p className="text-xs text-slate-400 mt-0.5">Select MCC code &amp; category</p>
+              </div>
+              <button type="button" onClick={()=>setOpen(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-100">
+                <Ic n="close" size={16} cls="text-slate-500"/>
+              </button>
+            </div>
+            <div className="px-4 py-3 border-b border-slate-100 flex-shrink-0">
+              <div className="relative">
+                <Ic n="search" size={15} cls="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+                <input ref={sheetSearchRef} value={q} onChange={e=>setQ(e.target.value)}
+                  placeholder="Search by code or name…"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"/>
+              </div>
+            </div>
+            <div className="sheet-scroll"><ListContent/></div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
 
-// ─── ACCORDION SECTION ───────────────────────────────────────────────────────
+// ── SECTION ──────────────────────────────────────────────────────────────────
 const Section = ({icon,title,sub,open,onToggle,children}) => (
-  <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-4 overflow-visible">
+  <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-3 overflow-visible">
     <button type="button" onClick={onToggle}
-      className="w-full flex items-center justify-between px-5 py-4 rounded-t-xl hover:bg-slate-50/70 transition-colors text-left">
+      className="w-full flex items-center justify-between px-4 sm:px-5 py-4 rounded-t-xl hover:bg-slate-50/60 transition-colors text-left">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
           <Ic n={icon} size={17}/>
@@ -172,28 +302,27 @@ const Section = ({icon,title,sub,open,onToggle,children}) => (
           <p className="text-xs text-slate-400 mt-0.5">{sub}</p>
         </div>
       </div>
-      <span className={`text-slate-400 transition-transform duration-200 ${open?'rotate-180':''}`}>
+      <span className={`text-slate-400 transition-transform duration-200 flex-shrink-0 ${open?'rotate-180':''}`}>
         <Ic n="chevron" size={18}/>
       </span>
     </button>
     <div className={`acc-body ${open?'acc-open':'acc-closed'}`}>
-      <div className="px-5 pb-5 pt-2 border-t border-slate-100">{children}</div>
+      <div className="px-4 sm:px-5 pb-5 pt-3 border-t border-slate-100">{children}</div>
     </div>
   </div>
 );
 
-// ─── GAUGE ───────────────────────────────────────────────────────────────────
+// ── GAUGE ────────────────────────────────────────────────────────────────────
 const Gauge = ({prob,color}) => {
   const pct = Math.round(prob*100);
-  const r = 78, circ = Math.PI*r;
-  const offset = circ - (pct/100)*circ;
+  const r=78, circ=Math.PI*r;
   return (
-    <div className="flex flex-col items-center py-2">
+    <div className="flex flex-col items-center py-1">
       <div className="relative" style={{width:200,height:116}}>
         <svg width="200" height="116" viewBox="0 0 200 116">
           <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke="#F1F5F9" strokeWidth="14" strokeLinecap="round"/>
           <path d="M 22 100 A 78 78 0 0 1 178 100" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
-            strokeDasharray={circ} strokeDashoffset={offset} className="gauge-fill"/>
+            strokeDasharray={circ} strokeDashoffset={circ-(pct/100)*circ} className="gauge-fill"/>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-3">
           <span className="text-4xl font-extrabold tracking-tight leading-none" style={{color}}>{pct}%</span>
@@ -204,82 +333,67 @@ const Gauge = ({prob,color}) => {
   );
 };
 
-// ─── RESULT PANEL ────────────────────────────────────────────────────────────
+// ── RESULT PANEL ─────────────────────────────────────────────────────────────
 const ResultPanel = ({result}) => {
-  if (!result) return (
+  if(!result) return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-      <div className="flex flex-col items-center justify-center min-h-[300px] p-8 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[260px] p-8 text-center">
         <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-          <Ic n="shield" size={30} className="text-slate-300"/>
+          <Ic n="shield" size={30} cls="text-slate-300"/>
         </div>
         <p className="text-sm font-semibold text-slate-400">No Analysis Yet</p>
-        <p className="text-xs text-slate-300 mt-1.5 leading-relaxed max-w-[160px]">Fill in the form and click Analyze Transaction</p>
+        <p className="text-xs text-slate-300 mt-1.5 leading-relaxed max-w-[180px]">Fill the form and tap Analyze Transaction</p>
       </div>
     </div>
   );
-
   const {fraud_probability,is_fraud,risk_level,model,threshold,reasons=[]} = result;
   const pct = Math.round(fraud_probability*100);
   const c = is_fraud||risk_level==='HIGH'
-    ? {color:'#EF4444',hdr:'bg-red-50 border-red-200',txt:'text-red-600',pill:'bg-red-100 text-red-700',badge:'text-red-500',border:'border-red-200'}
+    ? {col:'#EF4444',hdr:'bg-red-50 border-red-200',txt:'text-red-600',pill:'bg-red-100 text-red-700',ico:'text-red-500',bdr:'border-red-200'}
     : risk_level==='MEDIUM'
-    ? {color:'#F59E0B',hdr:'bg-amber-50 border-amber-200',txt:'text-amber-600',pill:'bg-amber-100 text-amber-700',badge:'text-amber-500',border:'border-amber-200'}
-    : {color:'#10B981',hdr:'bg-emerald-50 border-emerald-200',txt:'text-emerald-600',pill:'bg-emerald-100 text-emerald-700',badge:'text-emerald-500',border:'border-emerald-200'};
-
+    ? {col:'#F59E0B',hdr:'bg-amber-50 border-amber-200',txt:'text-amber-600',pill:'bg-amber-100 text-amber-700',ico:'text-amber-500',bdr:'border-amber-200'}
+    : {col:'#10B981',hdr:'bg-emerald-50 border-emerald-200',txt:'text-emerald-600',pill:'bg-emerald-100 text-emerald-700',ico:'text-emerald-500',bdr:'border-emerald-200'};
   return (
-    <div className={`bg-white rounded-xl border shadow-sm fade-up ${c.border}`}>
-      {/* Verdict header */}
-      <div className={`${c.hdr} border-b rounded-t-xl px-5 py-3.5 flex items-center justify-between`}>
-        <div className="flex items-center gap-2">
-          <Ic n={is_fraud?'danger':risk_level==='MEDIUM'?'warn':'shieldOk'} size={18} className={c.badge}/>
-          <span className={`text-sm font-bold ${c.txt}`}>
+    <div className={`bg-white rounded-xl border shadow-sm fade-up ${c.bdr}`}>
+      <div className={`${c.hdr} border-b rounded-t-xl px-4 sm:px-5 py-3.5 flex items-center justify-between gap-2`}>
+        <div className="flex items-center gap-2 min-w-0">
+          <Ic n={is_fraud?'danger':risk_level==='MEDIUM'?'warn':'shieldOk'} size={18} cls={`${c.ico} flex-shrink-0`}/>
+          <span className={`text-sm font-bold ${c.txt} truncate`}>
             {is_fraud?'FRAUDULENT — BLOCK':risk_level==='MEDIUM'?'SUSPICIOUS — REVIEW':'LEGITIMATE — APPROVE'}
           </span>
         </div>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${c.pill}`}>{risk_level}</span>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${c.pill}`}>{risk_level}</span>
       </div>
-
-      <div className="p-5">
-        <Gauge prob={fraud_probability} color={c.color}/>
-
-        {/* Metric tiles */}
-        <div className="grid grid-cols-3 gap-2.5 mt-4">
-          {[['Score',`${pct}%`,c.txt],['Risk Level',risk_level,c.txt],['Decision',is_fraud?'Block':'Approve',c.txt]].map(([k,v,cls])=>(
-            <div key={k} className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-              <p className={`text-base font-bold ${cls}`}>{v}</p>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">{k}</p>
+      <div className="p-4 sm:p-5">
+        <Gauge prob={fraud_probability} color={c.col}/>
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {[['Score',`${pct}%`,c.txt],['Risk',risk_level,c.txt],['Decision',is_fraud?'Block':'Approve',c.txt]].map(([k,v,cls])=>(
+            <div key={k} className="bg-slate-50 rounded-xl p-2.5 text-center border border-slate-100">
+              <p className={`text-sm font-bold leading-tight ${cls}`}>{v}</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">{k}</p>
             </div>
           ))}
         </div>
-
-        {/* Risk bar */}
         <div className="mt-4">
-          <div className="flex justify-between text-xs font-medium text-slate-400 mb-1.5">
-            <span>Risk Score</span><span>{pct}%</span>
-          </div>
+          <div className="flex justify-between text-xs font-medium text-slate-400 mb-1.5"><span>Risk Score</span><span>{pct}%</span></div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-1000 ease-out"
-              style={{width:`${pct}%`,background:c.color}}/>
+            <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{width:`${pct}%`,background:c.col}}/>
           </div>
         </div>
-
-        {/* Reasons */}
         {reasons.length>0 && (
           <div className="mt-5">
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Why this result?</p>
             <div className="flex flex-col gap-2">
               {reasons.map((r,i)=>(
                 <div key={i} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-xs leading-relaxed font-medium
-                  ${r.flag?'bg-red-50 border border-red-100 text-slate-700':'bg-emerald-50 border border-emerald-100 text-slate-700'}`}>
-                  <Ic n={r.flag?'warn':'check'} size={13} className={`flex-shrink-0 mt-0.5 ${r.flag?'text-red-500':'text-emerald-500'}`}/>
+                  ${r.flag?'bg-red-50 border border-red-100':'bg-emerald-50 border border-emerald-100'} text-slate-700`}>
+                  <Ic n={r.flag?'warn':'check'} size={13} cls={`flex-shrink-0 mt-0.5 ${r.flag?'text-red-500':'text-emerald-500'}`}/>
                   <span>{r.text}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* Details */}
         <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5">
           {[['Model',model],['Threshold',`${(threshold*100).toFixed(0)}% decision threshold`],['Analyzed at',new Date().toLocaleTimeString()]].map(([k,v])=>(
             <div key={k} className="flex justify-between items-center">
@@ -293,62 +407,61 @@ const ResultPanel = ({result}) => {
   );
 };
 
-// ─── HISTORY PANEL ───────────────────────────────────────────────────────────
+// ── HISTORY ──────────────────────────────────────────────────────────────────
 const HistoryPanel = ({history}) => (
   <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+    <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-slate-100">
       <div className="flex items-center gap-2">
-        <Ic n="clock" size={16} className="text-slate-400"/>
+        <Ic n="clock" size={16} cls="text-slate-400"/>
         <span className="text-sm font-semibold text-slate-700">Recent Checks</span>
       </div>
       <span className="text-xs text-slate-400">{history.length} check{history.length!==1?'s':''}</span>
     </div>
     <div className="p-3">
-      {!history.length ? (
-        <p className="text-xs text-slate-300 text-center py-5">No checks yet</p>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {history.map((h,i)=>{
-            const col = h.is_fraud?'#EF4444':h.risk_level==='MEDIUM'?'#F59E0B':'#10B981';
-            return (
-              <div key={i} className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:col}}/>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">${parseFloat(h.amount).toFixed(2)}</p>
-                    <p className="text-xs text-slate-400">{h.time}</p>
+      {!history.length
+        ? <p className="text-xs text-slate-300 text-center py-5">No checks yet</p>
+        : <div className="flex flex-col gap-1.5">
+            {history.map((h,i)=>{
+              const col=h.is_fraud?'#EF4444':h.risk_level==='MEDIUM'?'#F59E0B':'#10B981';
+              return (
+                <div key={i} className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background:col}}/>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">${parseFloat(h.amount).toFixed(2)}</p>
+                      <p className="text-xs text-slate-400">{h.time}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold" style={{color:col}}>{Math.round(h.fraud_probability*100)}%</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{background:`${col}18`,color:col}}>{h.risk_level}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold" style={{color:col}}>{Math.round(h.fraud_probability*100)}%</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{background:`${col}18`,color:col}}>{h.risk_level}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+      }
     </div>
   </div>
 );
 
-// ─── STATS ROW ───────────────────────────────────────────────────────────────
+// ── STATS ────────────────────────────────────────────────────────────────────
 const StatsRow = ({stats}) => {
   const avg = stats.checks>0?((stats.totalRisk/stats.checks)*100).toFixed(1):'0.0';
   return (
-    <div className="grid grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
       {[
-        {n:'bar',   label:'Total Checks',  value:stats.checks,  bg:'bg-blue-50',  txt:'text-blue-600'},
-        {n:'warn',  label:'Fraud Detected',value:stats.fraud,   bg:'bg-red-50',   txt:'text-red-600'},
-        {n:'trend', label:'Avg Risk Score', value:`${avg}%`,    bg:'bg-amber-50', txt:'text-amber-600'},
+        {n:'bar',  label:'Total Checks',  value:stats.checks, bg:'bg-blue-50', txt:'text-blue-600'},
+        {n:'warn', label:'Fraud Detected',value:stats.fraud,  bg:'bg-red-50',  txt:'text-red-600'},
+        {n:'trend',label:'Avg Risk',      value:`${avg}%`,    bg:'bg-amber-50',txt:'text-amber-600'},
       ].map(s=>(
-        <div key={s.label} className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4">
-          <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
-            <Ic n={s.n} size={20} className={s.txt}/>
+        <div key={s.label} className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-5 py-3 sm:py-4 flex items-center gap-2 sm:gap-4">
+          <div className={`w-9 sm:w-11 h-9 sm:h-11 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+            <Ic n={s.n} size={18} cls={s.txt}/>
           </div>
-          <div>
-            <p className="text-2xl font-extrabold text-slate-900 leading-none">{s.value}</p>
-            <p className="text-xs text-slate-400 font-medium mt-1">{s.label}</p>
+          <div className="min-w-0">
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-none">{s.value}</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium mt-1 truncate">{s.label}</p>
           </div>
         </div>
       ))}
@@ -356,22 +469,22 @@ const StatsRow = ({stats}) => {
   );
 };
 
-// ─── NAVBAR ──────────────────────────────────────────────────────────────────
+// ── NAVBAR ───────────────────────────────────────────────────────────────────
 const Navbar = () => (
   <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
-    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
-          <Ic n="shieldOk" size={16} className="text-white"/>
+          <Ic n="shieldOk" size={16} cls="text-white"/>
         </div>
         <span className="text-base font-bold text-slate-900 tracking-tight">FraudShield</span>
       </div>
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
-          <Ic n="bar" size={13} className="text-slate-500"/>
-          <span className="text-xs font-semibold text-slate-600">XGBoost · Threshold 50%</span>
+      <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
+          <Ic n="bar" size={13} cls="text-slate-500"/>
+          <span className="text-xs font-semibold text-slate-600">XGBoost · 50% threshold</span>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
+        <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse inline-block"/>
           <span className="text-xs font-semibold text-emerald-700">Live</span>
         </div>
@@ -380,7 +493,7 @@ const Navbar = () => (
   </nav>
 );
 
-// ─── FORM ────────────────────────────────────────────────────────────────────
+// ── FORM ─────────────────────────────────────────────────────────────────────
 const pad = n=>String(n).padStart(2,'0');
 const now = new Date();
 const INIT = {
@@ -394,21 +507,19 @@ const INIT = {
   time_since_last_tx:'720', tx_count_24h:'0', amount_sum_24h:'0',
   tx_count_7d:'0', amount_sum_7d:'0', user_mean_amt:'67', user_std_amt:'120',
 };
-
 const Form = ({onResult}) => {
   const [d,setD] = useState(INIT);
   const [open,setOpen] = useState({tx:true,card:false,holder:false,vel:false});
   const [loading,setLoading] = useState(false);
   const [err,setErr] = useState('');
+  const set = f=>v=>setD(p=>({...p,[f]:v}));
+  const tog = k=>setOpen(p=>({...p,[k]:!p[k]}));
 
-  const set = f => v => setD(p=>({...p,[f]:v}));
-  const tog = k => setOpen(p=>({...p,[k]:!p[k]}));
-
-  const submit = async () => {
+  const submit = async()=>{
     setErr(''); setLoading(true);
-    try {
-      const ts = d.timestamp.length===16?d.timestamp+':00':d.timestamp;
-      const payload = {
+    try{
+      const ts=d.timestamp.length===16?d.timestamp+':00':d.timestamp;
+      const payload={
         amount:parseFloat(d.amount)||0, use_chip:d.use_chip, mcc:d.mcc,
         merchant_state:d.merchant_state, timestamp:ts,
         birth_year:parseInt(d.birth_year), current_age:parseInt(d.current_age),
@@ -423,8 +534,8 @@ const Form = ({onResult}) => {
         tx_count_7d:parseFloat(d.tx_count_7d)||0, amount_sum_7d:parseFloat(d.amount_sum_7d)||0,
         user_mean_amt:parseFloat(d.user_mean_amt)||67, user_std_amt:Math.max(parseFloat(d.user_std_amt)||120,1),
       };
-      const res = await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const data = await res.json();
+      const res=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await res.json();
       if(!res.ok) throw new Error(data.detail||'Prediction failed');
       onResult(data, payload.amount);
     } catch(e){ setErr(e.message); }
@@ -433,12 +544,11 @@ const Form = ({onResult}) => {
 
   return (
     <div>
-      {/* Transaction Details */}
       <Section icon="receipt" title="Transaction Details" sub="Amount · Channel · Merchant" open={open.tx} onToggle={()=>tog('tx')}>
-        <div className="grid grid-cols-2 gap-4 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
           <div>
             <Label>Transaction Amount (USD)</Label>
-            <Inp type="number" value={d.amount} onChange={set('amount')} placeholder="0.00" step="0.01"/>
+            <Inp type="number" value={d.amount} onChange={set('amount')} placeholder="0.00" step="0.01" inputMode="decimal"/>
             <p className="text-[11px] text-slate-400 mt-1">Negative = credit or refund</p>
           </div>
           <div>
@@ -454,7 +564,7 @@ const Form = ({onResult}) => {
             {v:'Swipe Transaction',l:'Swipe'},
           ]}/>
         </div>
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
             <Label>Merchant Category (MCC)</Label>
             <MCCSearch value={d.mcc} onChange={set('mcc')}/>
@@ -473,13 +583,12 @@ const Form = ({onResult}) => {
         </div>
       </Section>
 
-      {/* Card Information */}
       <Section icon="card" title="Card Information" sub="Type · Brand · Chip" open={open.card} onToggle={()=>tog('card')}>
         <div className="mt-3">
           <Label>Card Type</Label>
-          <Seg value={d.card_type} onChange={set('card_type')} options={[{v:'Credit',l:'Credit'},{v:'Debit',l:'Debit'}]}/>
+          <Seg value={d.card_type} onChange={set('card_type')} options={[{v:'Credit',l:'Credit Card'},{v:'Debit',l:'Debit Card'}]}/>
         </div>
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
             <Label>Card Brand</Label>
             <Sel value={d.card_brand} onChange={set('card_brand')}>
@@ -488,7 +597,7 @@ const Form = ({onResult}) => {
           </div>
           <div>
             <Label>Cards Issued</Label>
-            <Inp type="number" value={d.num_cards_issued} onChange={set('num_cards_issued')} min="1"/>
+            <Inp type="number" value={d.num_cards_issued} onChange={set('num_cards_issued')} min="1" inputMode="numeric"/>
           </div>
         </div>
         <div className="mt-4">
@@ -497,86 +606,87 @@ const Form = ({onResult}) => {
         </div>
       </Section>
 
-      {/* Cardholder Profile */}
       <Section icon="user" title="Cardholder Profile" sub="Demographics · Finances" open={open.holder} onToggle={()=>tog('holder')}>
-        <div className="grid grid-cols-3 gap-4 mt-3">
-          <div><Label>Birth Year</Label><Inp type="number" value={d.birth_year} onChange={set('birth_year')}/></div>
-          <div><Label>Current Age</Label><Inp type="number" value={d.current_age} onChange={set('current_age')}/></div>
-          <div><Label>Retirement Age</Label><Inp type="number" value={d.retirement_age} onChange={set('retirement_age')}/></div>
+        <div className="grid grid-cols-3 gap-3 mt-3">
+          <div><Label>Birth Year</Label><Inp type="number" value={d.birth_year} onChange={set('birth_year')} inputMode="numeric"/></div>
+          <div><Label>Current Age</Label><Inp type="number" value={d.current_age} onChange={set('current_age')} inputMode="numeric"/></div>
+          <div><Label>Retire Age</Label><Inp type="number" value={d.retirement_age} onChange={set('retirement_age')} inputMode="numeric"/></div>
         </div>
         <div className="mt-4">
           <Label>Gender</Label>
           <Seg value={d.gender} onChange={set('gender')} options={[{v:'Male',l:'Male'},{v:'Female',l:'Female'}]}/>
         </div>
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div><Label>Yearly Income ($)</Label><Inp type="number" value={d.yearly_income} onChange={set('yearly_income')}/></div>
-          <div><Label>Total Debt ($)</Label><Inp type="number" value={d.total_debt} onChange={set('total_debt')}/></div>
-          <div><Label>Credit Limit ($)</Label><Inp type="number" value={d.credit_limit} onChange={set('credit_limit')}/></div>
-          <div><Label>Credit Score</Label><Inp type="number" value={d.credit_score} onChange={set('credit_score')}/></div>
-          <div><Label>Credit Cards Held</Label><Inp type="number" value={d.num_credit_cards} onChange={set('num_credit_cards')}/></div>
-          <div><Label>Per Capita Income ($)</Label><Inp type="number" value={d.per_capita_income} onChange={set('per_capita_income')}/></div>
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <div><Label>Yearly Income ($)</Label><Inp type="number" value={d.yearly_income} onChange={set('yearly_income')} inputMode="decimal"/></div>
+          <div><Label>Total Debt ($)</Label><Inp type="number" value={d.total_debt} onChange={set('total_debt')} inputMode="decimal"/></div>
+          <div><Label>Credit Limit ($)</Label><Inp type="number" value={d.credit_limit} onChange={set('credit_limit')} inputMode="decimal"/></div>
+          <div><Label>Credit Score</Label><Inp type="number" value={d.credit_score} onChange={set('credit_score')} inputMode="numeric"/></div>
+          <div><Label>Credit Cards</Label><Inp type="number" value={d.num_credit_cards} onChange={set('num_credit_cards')} inputMode="numeric"/></div>
+          <div><Label>Per Capita ($)</Label><Inp type="number" value={d.per_capita_income} onChange={set('per_capita_income')} inputMode="decimal"/></div>
         </div>
       </Section>
 
-      {/* Velocity */}
       <Section icon="activity" title="Transaction Velocity" sub="History · Spending Patterns" open={open.vel} onToggle={()=>tog('vel')}>
         <div className="flex items-start gap-2.5 px-3.5 py-3 bg-amber-50 border border-amber-100 rounded-xl mb-4 mt-3">
-          <Ic n="warn" size={14} className="text-amber-500 mt-0.5 flex-shrink-0"/>
+          <Ic n="warn" size={14} cls="text-amber-500 mt-0.5 flex-shrink-0"/>
           <p className="text-xs text-amber-700 leading-relaxed">
             Velocity features are the strongest fraud signal. Set high counts &amp; amounts to trigger a fraud result.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><Label>Time Since Last Tx (hrs)</Label><Inp type="number" value={d.time_since_last_tx} onChange={set('time_since_last_tx')}/></div>
-          <div><Label>Tx Count 24h</Label><Inp type="number" value={d.tx_count_24h} onChange={set('tx_count_24h')}/></div>
-          <div><Label>Amount Sum 24h ($)</Label><Inp type="number" value={d.amount_sum_24h} onChange={set('amount_sum_24h')}/></div>
-          <div><Label>Tx Count 7 Days</Label><Inp type="number" value={d.tx_count_7d} onChange={set('tx_count_7d')}/></div>
-          <div><Label>Amount Sum 7 Days ($)</Label><Inp type="number" value={d.amount_sum_7d} onChange={set('amount_sum_7d')}/></div>
-          <div><Label>User Mean Amount ($)</Label><Inp type="number" value={d.user_mean_amt} onChange={set('user_mean_amt')}/></div>
-          <div><Label>User Std Amount ($)</Label><Inp type="number" value={d.user_std_amt} onChange={set('user_std_amt')}/></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Time Since Last Tx (hrs)</Label><Inp type="number" value={d.time_since_last_tx} onChange={set('time_since_last_tx')} inputMode="decimal"/></div>
+          <div><Label>Tx Count 24h</Label><Inp type="number" value={d.tx_count_24h} onChange={set('tx_count_24h')} inputMode="numeric"/></div>
+          <div><Label>Amount Sum 24h ($)</Label><Inp type="number" value={d.amount_sum_24h} onChange={set('amount_sum_24h')} inputMode="decimal"/></div>
+          <div><Label>Tx Count 7 Days</Label><Inp type="number" value={d.tx_count_7d} onChange={set('tx_count_7d')} inputMode="numeric"/></div>
+          <div><Label>Amount Sum 7 Days ($)</Label><Inp type="number" value={d.amount_sum_7d} onChange={set('amount_sum_7d')} inputMode="decimal"/></div>
+          <div><Label>User Mean Amt ($)</Label><Inp type="number" value={d.user_mean_amt} onChange={set('user_mean_amt')} inputMode="decimal"/></div>
+          <div className="col-span-2 sm:col-span-1"><Label>User Std Amt ($)</Label><Inp type="number" value={d.user_std_amt} onChange={set('user_std_amt')} inputMode="decimal"/></div>
         </div>
       </Section>
 
       {err && (
         <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-700">
-          <Ic n="danger" size={16} className="text-red-500 flex-shrink-0"/>
+          <Ic n="danger" size={16} cls="text-red-500 flex-shrink-0"/>
           {err}
         </div>
       )}
 
       <button type="button" onClick={submit} disabled={loading}
-        className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 bg-blue-600 hover:bg-blue-700
+        className="w-full flex items-center justify-center gap-2.5 px-6 py-4 bg-blue-600 hover:bg-blue-700
           disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl
           shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.99]">
         {loading
-          ? <><Ic n="loader" size={17} className="animate-spin"/> Analyzing Transaction…</>
-          : <><Ic n="zap" size={17}/> Analyze Transaction</>
+          ? <><Ic n="loader" size={17} cls="animate-spin text-white"/> Analyzing Transaction…</>
+          : <><Ic n="zap" size={17} cls="text-white"/> Analyze Transaction</>
         }
       </button>
     </div>
   );
 };
 
-// ─── APP ─────────────────────────────────────────────────────────────────────
+// ── APP ──────────────────────────────────────────────────────────────────────
 const App = () => {
   const [result,setResult] = useState(null);
   const [history,setHistory] = useState([]);
   const [stats,setStats] = useState({checks:0,fraud:0,totalRisk:0});
+  const resultRef = useRef(null);
+  const isMobile = useIsMobile();
 
-  const handleResult = (data, amount) => {
+  const handleResult = (data,amount)=>{
     setResult(data);
     setHistory(p=>[{...data,amount,time:new Date().toLocaleTimeString()},...p].slice(0,7));
     setStats(p=>({checks:p.checks+1,fraud:p.fraud+(data.is_fraud?1:0),totalRisk:p.totalRisk+data.fraud_probability}));
+    if(isMobile) setTimeout(()=>resultRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),150);
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar/>
-      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         <StatsRow stats={stats}/>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 sm:gap-6 items-start">
           <Form onResult={handleResult}/>
-          <div className="flex flex-col gap-4 lg:sticky lg:top-20">
+          <div ref={resultRef} className="flex flex-col gap-3 sm:gap-4 lg:sticky lg:top-20">
             <ResultPanel result={result}/>
             <HistoryPanel history={history}/>
           </div>
