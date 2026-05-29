@@ -675,9 +675,13 @@ const Navbar = () => (
 // ── FORM ─────────────────────────────────────────────────────────────────────
 const pad = n=>String(n).padStart(2,'0');
 const now = new Date();
+
+// Night-time timestamp for fraud example (3 AM today)
+const fraudTs = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T03:15`;
+const normalTs = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
 const INIT = {
-  amount:'150.75',
-  timestamp:`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`,
+  amount:'150.75', timestamp:normalTs,
   use_chip:'Online Transaction', mcc:5411, merchant_state:'Unknown',
   birth_year:'1985', current_age:'38', retirement_age:'65', gender:'Male',
   yearly_income:'75000', total_debt:'12000', credit_limit:'10000',
@@ -686,6 +690,31 @@ const INIT = {
   time_since_last_tx:'720', tx_count_24h:'0', amount_sum_24h:'0',
   tx_count_7d:'0', amount_sum_7d:'0', user_mean_amt:'67', user_std_amt:'120',
 };
+
+// High-risk fraud example — triggers ~90% probability
+const FRAUD_EXAMPLE = {
+  amount:'3500', timestamp:fraudTs,
+  use_chip:'Online Transaction', mcc:5732, merchant_state:'CA',
+  birth_year:'1990', current_age:'35', retirement_age:'65', gender:'Male',
+  yearly_income:'30000', total_debt:'28000', credit_limit:'1500',
+  credit_score:'450', num_credit_cards:'6', per_capita_income:'15000',
+  card_type:'Debit', card_brand:'Visa', has_chip:'NO', num_cards_issued:'3',
+  time_since_last_tx:'0.05', tx_count_24h:'15', amount_sum_24h:'9000',
+  tx_count_7d:'50', amount_sum_7d:'22000', user_mean_amt:'45', user_std_amt:'30',
+};
+
+// Low-risk normal example — triggers ~2% probability
+const NORMAL_EXAMPLE = {
+  amount:'42.50', timestamp:normalTs,
+  use_chip:'Chip Transaction', mcc:5411, merchant_state:'CA',
+  birth_year:'1980', current_age:'44', retirement_age:'65', gender:'Female',
+  yearly_income:'95000', total_debt:'8000', credit_limit:'15000',
+  credit_score:'780', num_credit_cards:'2', per_capita_income:'48000',
+  card_type:'Credit', card_brand:'Visa', has_chip:'YES', num_cards_issued:'1',
+  time_since_last_tx:'48', tx_count_24h:'2', amount_sum_24h:'85',
+  tx_count_7d:'8', amount_sum_7d:'420', user_mean_amt:'65', user_std_amt:'40',
+};
+
 const Form = ({onResult}) => {
   const [d,setD] = useState(INIT);
   const [open,setOpen] = useState({tx:true,card:false,holder:false,vel:false});
@@ -693,6 +722,7 @@ const Form = ({onResult}) => {
   const [err,setErr] = useState('');
   const set = f=>v=>setD(p=>({...p,[f]:v}));
   const tog = k=>setOpen(p=>({...p,[k]:!p[k]}));
+  const loadExample = (ex) => { setD(ex); setOpen({tx:true,card:true,holder:true,vel:true}); setErr(''); };
 
   const submit = async()=>{
     setErr(''); setLoading(true);
@@ -723,6 +753,30 @@ const Form = ({onResult}) => {
 
   return (
     <div>
+      {/* Quick example bar */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-3">
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Quick Examples</p>
+        <div className="flex gap-2.5 flex-wrap">
+          <button type="button" onClick={()=>loadExample(FRAUD_EXAMPLE)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 text-xs font-semibold rounded-lg transition-colors active:scale-95">
+            <Ic n="danger" size={13} cls="text-red-500 flex-shrink-0"/>
+            Fraud Example (~90%)
+          </button>
+          <button type="button" onClick={()=>loadExample(NORMAL_EXAMPLE)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-semibold rounded-lg transition-colors active:scale-95">
+            <Ic n="shieldOk" size={13} cls="text-emerald-500 flex-shrink-0"/>
+            Normal Example (~2%)
+          </button>
+          <button type="button" onClick={()=>{ setD(INIT); setErr(''); }}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold rounded-lg transition-colors active:scale-95">
+            Reset
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
+          <span className="font-semibold text-amber-600">Why does it show 0%?</span> — The model is driven by velocity features (tx count &amp; spend in 24h/7d). Default values are all zero, which looks like a normal new user. Use the <span className="font-semibold text-red-600">Fraud Example</span> to see high-risk output.
+        </p>
+      </div>
+
       <Section icon="receipt" title="Transaction Details" sub="Amount · Channel · Merchant" open={open.tx} onToggle={()=>tog('tx')}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
           <div>
