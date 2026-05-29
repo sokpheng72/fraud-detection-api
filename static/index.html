@@ -16,7 +16,7 @@
     *{box-sizing:border-box}
     body{font-family:'Inter',sans-serif}
     .acc-body{overflow:hidden;transition:max-height .32s cubic-bezier(.4,0,.2,1),opacity .25s ease}
-    .acc-open{max-height:2400px;opacity:1}
+    .acc-open{max-height:2400px;opacity:1;overflow:visible}
     .acc-closed{max-height:0;opacity:0}
     .fade-up{animation:fadeUp .3s ease both}
     @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -64,8 +64,14 @@ const IC = {
   loader:   `<line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/>`,
   close:    `<line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/>`,
   store:    `<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`,
+  map:      `<circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 0 0-8-8z"/>`,
 };
 const Ic = ({n,size=18,cls=''}) => <SVG ch={IC[n]} size={size} cls={cls}/>;
+
+// ── Shared body scroll lock (ref-counts so two pickers don't conflict) ────────
+let _lockCount = 0;
+const lockScroll   = () => { _lockCount++; document.body.style.overflow='hidden'; };
+const unlockScroll = () => { _lockCount = Math.max(0,_lockCount-1); if(!_lockCount) document.body.style.overflow=''; };
 
 // ── US STATES (full name + abbreviation) ─────────────────────────────────────
 const STATES_POPULAR = [
@@ -212,10 +218,10 @@ const MCCSearch = ({value, onChange}) => {
   // Lock body scroll when mobile sheet open
   useEffect(()=>{
     if(isMobile&&open){
-      document.body.style.overflow='hidden';
+      lockScroll();
       setTimeout(()=>sheetSearchRef.current?.focus(),120);
-    } else { document.body.style.overflow=''; }
-    return ()=>{ document.body.style.overflow=''; };
+      return ()=>unlockScroll();
+    }
   },[isMobile,open]);
 
   const openIt = ()=>{ setQ(''); setOpen(true); if(!isMobile) setTimeout(()=>ddSearchRef.current?.focus(),60); };
@@ -245,15 +251,15 @@ const MCCSearch = ({value, onChange}) => {
         </div>
       ));
 
-  // ── currently selected banner (shown at top of dropdown/sheet) ──
-  const SelectedBanner = () => current && (
+  // ── selected banner (inline — NOT a sub-component, so no stale closure) ──
+  const selBanner = current ? (
     <div className="flex items-center gap-2.5 px-3 py-2 mx-2.5 mb-1 mt-1 bg-blue-50 border border-blue-200 rounded-lg">
       <Ic n="tick" size={13} cls="text-blue-500 flex-shrink-0"/>
       <span className="text-[11px] text-blue-600 font-semibold flex-shrink-0">Selected:</span>
       <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded tabular-nums flex-shrink-0">{current[0]}</span>
       <span className="text-xs text-blue-700 truncate">{current[1]}</span>
     </div>
-  );
+  ) : null;
 
   return (
     <div ref={wrapRef} className="relative">
@@ -269,8 +275,7 @@ const MCCSearch = ({value, onChange}) => {
       {/* DESKTOP DROPDOWN */}
       {!isMobile && open && (
         <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden" style={{minWidth:320}}>
-          {/* Currently selected banner */}
-          <div className="pt-2"><SelectedBanner/></div>
+          <div className="pt-2">{selBanner}</div>
           <div className="p-2.5 border-b border-slate-100">
             <div className="relative">
               <Ic n="search" size={13} cls="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
@@ -300,7 +305,7 @@ const MCCSearch = ({value, onChange}) => {
                 <Ic n="close" size={16} cls="text-slate-500"/>
               </button>
             </div>
-            <div className="px-4 pt-2 pb-1 flex-shrink-0"><SelectedBanner/></div>
+            <div className="px-4 pt-2 pb-1 flex-shrink-0">{selBanner}</div>
             <div className="px-4 py-3 border-b border-slate-100 flex-shrink-0">
               <div className="relative">
                 <Ic n="search" size={15} cls="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
@@ -349,10 +354,10 @@ const StateSearch = ({value, onChange}) => {
 
   useEffect(()=>{
     if(isMobile&&open){
-      document.body.style.overflow='hidden';
+      lockScroll();
       setTimeout(()=>sheetSearchRef.current?.focus(),120);
-    } else { document.body.style.overflow=''; }
-    return ()=>{ document.body.style.overflow=''; };
+      return ()=>unlockScroll();
+    }
   },[isMobile,open]);
 
   const openIt = ()=>{ setQ(''); setOpen(true); if(!isMobile) setTimeout(()=>ddSearchRef.current?.focus(),60); };
@@ -370,34 +375,40 @@ const StateSearch = ({value, onChange}) => {
     </button>
   );
 
-  const renderList = (mobile) => filtered
-    ? filtered.length
-      ? filtered.map(([c,n])=>renderRow(c,n,mobile))
-      : <p className="text-sm text-slate-400 text-center py-8">No results for "{q}"</p>
-    : STATE_GROUPS.map(g=>(
+  const renderList = (mobile) => {
+    const rows = filtered
+      ? filtered.length
+        ? filtered.map(([c,n])=>renderRow(c,n,mobile))
+        : [<p key="nope" className="text-sm text-slate-400 text-center py-8">No results for "{q}"</p>]
+      : null;
+    if(rows) return rows;
+    return [
+      renderRow('Unknown','Unknown / Not Listed',mobile),
+      ...STATE_GROUPS.map(g=>(
         <div key={g.g}>
           <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-y border-slate-100 sticky top-0 z-10">{g.g}</div>
           {g.items.map(([c,n])=>renderRow(c,n,mobile))}
         </div>
-      ));
+      ))
+    ];
+  };
 
-  const SelectedBanner = () => current && value !== 'Unknown' && (
+  // inline banner — NOT a sub-component
+  const selBanner = (current && value !== 'Unknown') ? (
     <div className="flex items-center gap-2.5 px-3 py-2 mx-2.5 mb-1 mt-1 bg-blue-50 border border-blue-200 rounded-lg">
       <Ic n="tick" size={13} cls="text-blue-500 flex-shrink-0"/>
       <span className="text-[11px] text-blue-600 font-semibold flex-shrink-0">Selected:</span>
       <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded flex-shrink-0">{current[0]}</span>
       <span className="text-xs text-blue-700 truncate">{current[1]}</span>
     </div>
-  );
-
-  const mapIcon = `<circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 0 0-8-8z"/>`;
+  ) : null;
 
   return (
     <div ref={wrapRef} className="relative">
       {/* Trigger */}
       <button type="button" onClick={openIt}
         className={`${iCls} flex items-center gap-2.5 text-left pr-3 ${open&&!isMobile?'border-blue-400 ring-2 ring-blue-500/20':''}`}>
-        <SVG ch={mapIcon} size={15} cls="text-slate-400 flex-shrink-0"/>
+        <Ic n="map" size={15} cls="text-slate-400 flex-shrink-0"/>
         {value!=='Unknown'
           ? <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">{value}</span>
           : null}
@@ -408,7 +419,7 @@ const StateSearch = ({value, onChange}) => {
       {/* DESKTOP DROPDOWN */}
       {!isMobile && open && (
         <div className="absolute top-full mt-1.5 left-0 right-0 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden" style={{minWidth:280}}>
-          <div className="pt-2"><SelectedBanner/></div>
+          <div className="pt-2">{selBanner}</div>
           <div className="p-2.5 border-b border-slate-100">
             <div className="relative">
               <Ic n="search" size={13} cls="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
@@ -438,7 +449,7 @@ const StateSearch = ({value, onChange}) => {
                 <Ic n="close" size={16} cls="text-slate-500"/>
               </button>
             </div>
-            <div className="px-4 pt-2 pb-1 flex-shrink-0"><SelectedBanner/></div>
+            <div className="px-4 pt-2 pb-1 flex-shrink-0">{selBanner}</div>
             <div className="px-4 py-3 border-b border-slate-100 flex-shrink-0">
               <div className="relative">
                 <Ic n="search" size={15} cls="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
