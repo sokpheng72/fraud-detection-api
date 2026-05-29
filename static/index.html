@@ -67,6 +67,26 @@ const IC = {
 };
 const Ic = ({n,size=18,cls=''}) => <SVG ch={IC[n]} size={size} cls={cls}/>;
 
+// ── US STATES (full name + abbreviation) ─────────────────────────────────────
+const STATES_POPULAR = [
+  ['CA','California'],['TX','Texas'],['NY','New York'],['FL','Florida'],
+  ['IL','Illinois'],['PA','Pennsylvania'],['OH','Ohio'],['GA','Georgia'],
+  ['NC','North Carolina'],['MI','Michigan'],
+];
+const STATES_ALL = [
+  ['AK','Alaska'],['AL','Alabama'],['AR','Arkansas'],['AZ','Arizona'],
+  ['CO','Colorado'],['CT','Connecticut'],['DC','Washington D.C.'],['DE','Delaware'],
+  ['HI','Hawaii'],['IA','Iowa'],['ID','Idaho'],['IN','Indiana'],
+  ['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['MA','Massachusetts'],
+  ['MD','Maryland'],['ME','Maine'],['MN','Minnesota'],['MO','Missouri'],
+  ['MS','Mississippi'],['MT','Montana'],['ND','North Dakota'],['NE','Nebraska'],
+  ['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NV','Nevada'],
+  ['OK','Oklahoma'],['OR','Oregon'],['RI','Rhode Island'],['SC','South Carolina'],
+  ['SD','South Dakota'],['TN','Tennessee'],['UT','Utah'],['VA','Virginia'],
+  ['VT','Vermont'],['WA','Washington'],['WI','Wisconsin'],['WV','West Virginia'],
+  ['WY','Wyoming'],
+];
+
 // ── MCC DATA (grouped) ───────────────────────────────────────────────────────
 const MCC_GROUPS = [
   {g:'Retail & Shopping', items:[
@@ -572,11 +592,16 @@ const Form = ({onResult}) => {
           <div>
             <Label>Merchant State</Label>
             <Sel value={d.merchant_state} onChange={set('merchant_state')}>
-              <optgroup label="Popular">
-                {['CA','TX','NY','FL','IL','PA','OH','GA','NC','MI'].map(s=><option key={s}>{s}</option>)}
+              <option value="Unknown">Unknown / Not Listed</option>
+              <optgroup label="── Popular States ──">
+                {STATES_POPULAR.map(([code,name])=>(
+                  <option key={code} value={code}>{name} ({code})</option>
+                ))}
               </optgroup>
-              <optgroup label="All States">
-                {['AK','AL','AR','AZ','CO','CT','DC','DE','HI','IA','ID','IN','KS','KY','LA','MA','MD','ME','MN','MO','MS','MT','ND','NE','NH','NJ','NM','NV','OK','OR','RI','SC','SD','TN','UT','VA','VT','WA','WI','WV','WY','Unknown'].map(s=><option key={s}>{s}</option>)}
+              <optgroup label="── All States ──">
+                {STATES_ALL.map(([code,name])=>(
+                  <option key={code} value={code}>{name} ({code})</option>
+                ))}
               </optgroup>
             </Sel>
           </div>
